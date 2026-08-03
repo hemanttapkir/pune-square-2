@@ -1,69 +1,90 @@
-// Simple client-side project store backed by localStorage.
-// This is the file page.tsx expects at "@/lib/projects".
-// Swap this out for a real API/database later without changing
-// the shape of Project or the function names below.
+import { supabase } from '@/lib/supabase';
 
-export const PROPERTY_TYPES = ['Apartment', 'Villa', 'Studio', 'Penthouse', 'Plot', 'Commercial'] as const;
+export const PROPERTY_TYPES = [
+  'Apartment',
+  'Villa',
+  'Studio',
+  'Penthouse',
+  'Plot',
+  'Commercial',
+] as const;
+
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
 
 export interface Project {
   id: string;
-  slug: string;
   title: string;
-  location: string;
-  price: string; // e.g. "₹1.2Cr"
-  rera: boolean;
-  propertyType?: PropertyType;
-  imagesUrl?: string[];
+  slug: string;
   description?: string;
+  locality?: string;
+  city?: string;
+  location?: string;
+  price?: string;
+  rera?: string;
+  propertyType?: string;
+  amenities?: string[];
+  unit_pricing?: Array<{ unit_type: string; carpet_area: string; price: string }>;
+  imagesUrl?: string[];
+  featured_image?: string;
+  status?: string;
 }
 
-import { PROJECTS as STATIC_PROJECTS } from './projects-data';
+// Fetch all active projects (for homepage/listings)
+export async function getProjects(): Promise<Project[]> {
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
 
-const STORAGE_KEY = 'pune-square-projects';
+  if (error || !data) return [];
 
-function slugify(title: string): string {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+  return data.map((property) => ({
+    id: property.id,
+    title: property.title,
+    slug: property.slug,
+    description: property.description,
+    locality: property.locality,
+    city: property.city,
+    location: `${property.locality || ''}${property.city ? `, ${property.city}` : ''}`,
+    rera: property.rera_id,
+    amenities: property.amenities,
+    unit_pricing: property.unit_pricing,
+    imagesUrl: property.featured_image ? [property.featured_image] : [],
+    featured_image: property.featured_image,
+  }));
 }
 
-function getLocalProjects(): Project[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Project[]) : [];
-  } catch {
-    return [];
-  }
-}
+// Fetch single project by slug
+export async function getProjectBySlug(slug: string): Promise<Project | null> {
+  const { data: property, error } = await supabase
+    .from('properties')
+    .select('*')
+    .eq('slug', slug)
+    .single();
 
-// The real, always-visible catalog: hardcoded projects first, then anything
-// added locally through /agent (only visible in the browser that added them —
-// handy for previewing before you commit it to lib/projects-data.ts).
-export function getProjects(): Project[] {
-  return [...STATIC_PROJECTS, ...getLocalProjects()];
-}
+  if (error || !property) return null;
 
-export function getProjectBySlug(slug: string): Project | undefined {
-  return getProjects().find((p) => p.slug === slug);
-}
+  const { data: images } = await supabase
+    .from('property_images')
+    .select('image_url')
+    .eq('property_id', property.id);
 
-export function addProject(input: Omit<Project, 'id' | 'slug'> & { slug?: string }): Project {
-  const localProjects = getLocalProjects();
-  const project: Project = {
-    id: crypto.randomUUID(),
-    slug: input.slug || slugify(input.title),
-    ...input,
+  const imagesUrl = images && images.length > 0 
+    ? images.map((img) => img.image_url)
+    : property.featured_image ? [property.featured_image] : [];
+
+  return {
+    id: property.id,
+    title: property.title,
+    slug: property.slug,
+    description: property.description,
+    locality: property.locality,
+    city: property.city,
+    location: `${property.locality || ''}${property.city ? `, ${property.city}` : ''}`,
+    rera: property.rera_id,
+    amenities: property.amenities,
+    unit_pricing: property.unit_pricing,
+    imagesUrl,
   };
-  localProjects.push(project);
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(localProjects));
-  return project;
-}
-
-export function deleteProject(id: string): void {
-  const localProjects = getLocalProjects().filter((p) => p.id !== id);
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(localProjects));
 }

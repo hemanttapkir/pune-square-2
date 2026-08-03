@@ -46,8 +46,7 @@ const CORRIDORS = [
 
 const BUDGETS = ['Any budget', 'Under ₹80L', '₹80L – ₹1.5Cr', '₹1.5Cr – ₹3Cr', '₹3Cr and above'];
 
-// Small inline icon set — kept as simple stroked SVGs so no extra
-// dependency is needed and they inherit color via currentColor.
+// Small inline icon set
 const ICONS = {
   building: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -113,7 +112,6 @@ const ICONS = {
   ),
 };
 
-// Icon per property-type category, used on the "browse by type" tiles.
 const PROPERTY_ICONS: Record<PropertyType, React.ReactNode> = {
   Apartment: ICONS.building,
   Villa: (
@@ -154,6 +152,7 @@ const PROPERTY_ICONS: Record<PropertyType, React.ReactNode> = {
 };
 
 function parsePriceToLakh(price: string): number | null {
+  if (!price) return null;
   const match = price.match(/([\d.]+)\s*(L|Cr)/i);
   if (!match) return null;
   const value = parseFloat(match[1]);
@@ -173,30 +172,37 @@ function matchesBudget(lakh: number, bucket: string): boolean {
 type PropertyTypeFilter = PropertyType | 'All types';
 
 export default function HomePage() {
-  const [projects, setProjects] = useState<Project[] | []>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [query, setQuery] = useState('');
   const [corridor, setCorridor] = useState('All corridors');
   const [budget, setBudget] = useState('Any budget');
   const [propertyType, setPropertyType] = useState<PropertyTypeFilter>('All types');
   const [searchTab, setSearchTab] = useState<'buy' | 'rent'>('buy');
 
+  // Properly awaiting async getProjects call
   useEffect(() => {
-    setProjects(getProjects());
+    async function loadProjects() {
+      const data = await getProjects();
+      setProjects(data || []);
+    }
+    loadProjects();
   }, []);
 
   const filteredProjects = useMemo(() => {
+    if (!Array.isArray(projects)) return [];
+
     return projects.filter((item: Project) => {
       if (query.trim() && !item.title.toLowerCase().includes(query.trim().toLowerCase())) {
         return false;
       }
       if (corridor !== 'All corridors') {
         const c = CORRIDORS.find((c) => c.title === corridor);
-        if (c && !c.localities.some((loc) => item.location.toLowerCase().includes(loc))) {
+        if (c && !c.localities.some((loc) => item.location?.toLowerCase().includes(loc))) {
           return false;
         }
       }
       if (budget !== 'Any budget') {
-        const lakh = parsePriceToLakh(item.price);
+        const lakh = parsePriceToLakh(item.price || '');
         if (lakh !== null && !matchesBudget(lakh, budget)) return false;
       }
       if (propertyType !== 'All types' && item.propertyType !== propertyType) {
@@ -280,12 +286,15 @@ export default function HomePage() {
               </div>
               <div className="search-field">
                 {ICONS.building}
-                <select value={propertyType} onChange={(e) => setPropertyType(e.target.value as PropertyTypeFilter)} aria-label="Filter by property type">
-                  <option value="All types">All types</option>
-                  {PROPERTY_TYPES.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
+                <select value={propertyType} 
+  onChange={(e) => setPropertyType(e.target.value as PropertyTypeFilter)} 
+  aria-label="Filter by property type"
+>
+  <option value="All types">All types</option>
+  {(PROPERTY_TYPES || []).map((t) => (
+    <option key={t} value={t}>{t}</option>
+  ))}
+</select>
               </div>
               <div className="search-field">
                 {ICONS.rupee}
@@ -308,26 +317,26 @@ export default function HomePage() {
             <h2>Find the configuration you&apos;re after</h2>
           </div>
           <div className="category-grid reveal">
-            {PROPERTY_TYPES.map((type) => {
-              const count = projects.filter((p) => p.propertyType === type).length;
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  className={`category-tile ${propertyType === type ? 'active' : ''}`}
-                  onClick={() => {
-                    setPropertyType(type);
-                    scrollToProjects();
-                  }}
-                >
-                  <span className="category-icon">{PROPERTY_ICONS[type]}</span>
-                  <span className="category-name">{type}</span>
-                  <span className="category-count">{count} listing{count === 1 ? '' : 's'}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+  {(PROPERTY_TYPES || []).map((type) => {
+    const count = projects.filter((p) => p.propertyType === type).length;
+    return (
+      <button
+        key={type}
+        type="button"
+        className={`category-tile ${propertyType === type ? 'active' : ''}`}
+        onClick={() => {
+          setPropertyType(type);
+          scrollToProjects();
+        }}
+      >
+        <span className="category-icon">{PROPERTY_ICONS[type]}</span>
+        <span className="category-name">{type}</span>
+        <span className="category-count">{count} listing{count === 1 ? '' : 's'}</span>
+      </button>
+    );
+  })}
+</div>
+</div>
       </section>
 
       <div className="stat-strip">
@@ -381,28 +390,28 @@ export default function HomePage() {
               <p className="eyebrow">Active Inventory</p>
               <h2>Latest Projects</h2>
             </div>
-            <Link href="/agent" className="btn btn-solid">+ Add New Project</Link>
+            <Link href="/admin/add-project" className="btn btn-solid">+ Add New Project</Link>
           </div>
 
           <div className="type-tabs reveal">
-            <button
-              type="button"
-              className={`type-tab ${propertyType === 'All types' ? 'active' : ''}`}
-              onClick={() => setPropertyType('All types')}
-            >
-              All
-            </button>
-            {PROPERTY_TYPES.map((t) => (
-              <button
-                key={t}
-                type="button"
-                className={`type-tab ${propertyType === t ? 'active' : ''}`}
-                onClick={() => setPropertyType(t)}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+  <button
+    type="button"
+    className={`type-tab ${propertyType === 'All types' ? 'active' : ''}`}
+    onClick={() => setPropertyType('All types')}
+  >
+    All
+  </button>
+  {(PROPERTY_TYPES || []).map((t) => (
+    <button
+      key={t}
+      type="button"
+      className={`type-tab ${propertyType === t ? 'active' : ''}`}
+      onClick={() => setPropertyType(t)}
+    >
+      {t}
+    </button>
+  ))}
+</div>
 
           <div className="finder">
             <div className="finder-bar">
@@ -448,7 +457,7 @@ export default function HomePage() {
 
           {projects.length === 0 ? (
             <p style={{ color: 'var(--ink-soft)', marginTop: '16px' }}>
-              No custom projects added yet. <Link href="/agent" style={{ color: 'var(--brick)', fontWeight: 600 }}>Add one now →</Link>
+              No custom projects added yet. <Link href="/admin/add-project" style={{ color: 'var(--brick)', fontWeight: 600 }}>Add one now →</Link>
             </p>
           ) : filteredProjects.length === 0 ? (
             <p style={{ color: 'var(--ink-soft)', marginTop: '16px' }}>
@@ -462,7 +471,6 @@ export default function HomePage() {
 
                 return (
                   <div className="pcard" key={item.id}>
-                    {/* Image now links straight through to the project's detail page */}
                     <Link href={`/projects/${item.slug}`} className="pcard-img" aria-label={`View details for ${item.title}`}>
                       <img
                         src={cardImage}
@@ -493,7 +501,7 @@ export default function HomePage() {
 
                       <div className="meta">
                         <div className="price">
-                          {item.price}
+                          {item.price || 'Price on Request'}
                           <small>Starting Price</small>
                         </div>
                         <Link

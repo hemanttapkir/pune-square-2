@@ -116,7 +116,7 @@ nav a:hover { color: var(--brick); }
 
 .search-card {
   margin: 40px auto 0;
-  max-width: 880px;
+  max-width: 100%; width: 100%;
   background: var(--stone);
   border-radius: 12px;
   box-shadow: 0 20px 50px rgba(0,0,0,0.35);
@@ -212,7 +212,7 @@ section { padding: 84px 0; }
 .section-head p { color: var(--ink-soft); font-size: 15.5px; }
 .section-head-flex {
   display: flex; justify-content: space-between; align-items: flex-end;
-  flex-wrap: wrap; gap: 16px; margin-bottom: 42px; max-width: none;
+  flex-wrap: wrap; gap: 16px; margin-bottom: 42px; max-width: 100%;
 }
 
 /* ---------- CORRIDOR MAP ---------- */
@@ -395,7 +395,7 @@ footer a:hover { color: var(--gold); }
 :focus-visible { outline: 2px solid var(--brick); outline-offset: 2px; }
 
 /* ---------- RESPONSIVE ---------- */
-@media (max-width: 768px) {
+@media (max-width: 100%) {
   .hero-grid { text-align: center; }
   .hero-actions { justify-content: center; }
   .hero-art { display: flex; justify-content: center; }
@@ -403,7 +403,7 @@ footer a:hover { color: var(--gold); }
   .nav-cta { width: 100%; text-align: center; }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 100%) {
   section { padding: 56px 0; }
   .search-fields { flex-direction: column; }
   .search-field, .search-submit { margin: 4px 0; width: 100%; }
@@ -415,7 +415,7 @@ footer a:hover { color: var(--gold); }
   .finder-search input { min-height: 28px; }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 100%) {
   .wrap { padding: 0 16px; }
   .stat-grid { grid-template-columns: 1fr; }
   .project-grid { grid-template-columns: 1fr; }

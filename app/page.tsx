@@ -476,7 +476,7 @@ export default function HomePage() {
                   // Clean leading slashes
                   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
                   // Construct Supabase public CDN URL
-                  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/property-images/${cleanPath}`;
+                  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}https://blenhixylcitexupwrxm.supabase.co/storage/v1/object/public/property-images/${cleanPath}`;
                 };
                 const cardImage = rawImages.length > 0 ? getStorageUrl(rawImages[0]) : '/placeholder.svg';
                 const extraPhotos = Math.max(0, rawImages.length - 1);

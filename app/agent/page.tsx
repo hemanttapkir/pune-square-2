@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { addProject, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
+import { createProject, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
 
 export default function AgentPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState('');
@@ -14,24 +15,33 @@ export default function AgentPage() {
   const [imagesUrl, setImagesUrl] = useState('');
   const [description, setDescription] = useState('');
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !location.trim() || !price.trim()) return;
 
-    addProject({
-      title: title.trim(),
-      location: location.trim(),
-      price: price.trim(),
-      rera,
-      propertyType,
-      description: description.trim() || undefined,
-      imagesUrl: imagesUrl
-        .split(',')
-        .map((u) => u.trim())
-        .filter(Boolean),
-    });
+    setLoading(true);
 
-    router.push('/');
+    try {
+      await createProject({
+        title: title.trim(),
+        locality: location.trim(),
+        price: price.trim(),
+        rera,
+        propertyType,
+        description: description.trim() || undefined,
+        imagesUrl: imagesUrl
+          .split(',')
+          .map((u) => u.trim())
+          .filter(Boolean),
+      });
+
+      router.push('/');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save project.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -70,8 +80,8 @@ export default function AgentPage() {
           <input type="checkbox" checked={rera} onChange={(e) => setRera(e.target.checked)} />
           MahaRERA registered
         </label>
-        <button type="submit" className="btn btn-solid" style={{ justifySelf: 'start' }}>
-          Save project
+        <button type="submit" disabled={loading} className="btn btn-solid" style={{ justifySelf: 'start' }}>
+          {loading ? 'Saving...' : 'Save project'}
         </button>
       </form>
     </div>

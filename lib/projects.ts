@@ -88,3 +88,47 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
     imagesUrl,
   };
 }
+// Add new project to Supabase
+export async function createProject(data: {
+  title: string;
+  locality: string;
+  price: string;
+  rera: boolean;
+  propertyType: PropertyType;
+  description?: string;
+  imagesUrl: string[];
+}) {
+  const slug = data.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+
+  const { data: property, error } = await supabase
+    .from('properties')
+    .insert({
+      title: data.title,
+      slug,
+      locality: data.locality,
+      description: data.description,
+      status: 'active',
+    })
+    .select()
+    .single();
+
+  if (error || !property) {
+    console.error('Error inserting property:', error);
+    throw error;
+  }
+
+  // Insert images into property_images table if present
+  if (data.imagesUrl.length > 0) {
+    const imageRecords = data.imagesUrl.map((url) => ({
+      property_id: property.id,
+      image_url: url,
+    }));
+
+    await supabase.from('property_images').insert(imageRecords);
+  }
+
+  return property;
+}

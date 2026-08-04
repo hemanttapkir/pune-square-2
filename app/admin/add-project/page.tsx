@@ -98,57 +98,63 @@ export default function AddProjectPage() {
       if (propertyError) throw propertyError;
       if (!property?.id) throw new Error('Failed to retrieve project ID.');
 
-      // 2. Safe Image Upload
-      let featuredImageUrl = '';
+// 2. Safe Parallel Image Upload
+if (images && images.length > 0) {
+  const imageFiles = Array.from(images);
 
-      if (images && images.length > 0) {
-        for (let i = 0; i < images.length; i++) {
-          const file = images[i];
+  const uploadPromises = imageFiles.map(async (file, i) => {
+    const rawExt = file.name.split('.').pop() || 'jpg';
+    const cleanExt = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const storagePath = `${property.id}/${Date.now()}_${i}.${cleanExt}`;
 
-          // Sanitize Extension (force clean lowercase alphanumerics like jpg, png, webp)
-          const rawExt = file.name.split('.').pop() || 'jpg';
-          const cleanExt = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // Upload to bucket
+    const { error: uploadError } = await supabase.storage
+      .from('property-images')
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
 
-          // Strict path construction: e.g. "a1b2c3d4-1234-5678/1722700000_0.jpg"
-          const storagePath = `${property.id}/${Date.now()}_${i}.${cleanExt}`;
+    if (uploadError) {
+      throw new Error(`Upload failed for ${file.name}: ${uploadError.message}`);
+    }
 
-          const { error: uploadError } = await supabase.storage
-            .from('property-images')
-            .upload(storagePath, file, {
-              cacheControl: '3600',
-              upsert: true,
-            });
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('property-images')
+      .getPublicUrl(storagePath);
 
-          if (uploadError) {
-            console.error('Storage Upload Error Detail:', uploadError);
-            throw new Error(`Storage Error (${uploadError.name}): ${uploadError.message}`);
-          }
+    return {
+      property_id: property.id,
+      image_url: urlData.publicUrl,
+      is_first: i === 0,
+    };
+  });
 
-          // Fetch Public URL
-          const { data: urlData } = supabase.storage
-            .from('property-images')
-            .getPublicUrl(storagePath);
+  // Execute all uploads concurrently
+  const uploadedImages = await Promise.all(uploadPromises);
 
-          const publicUrl = urlData.publicUrl;
+  // Bulk insert image records into database
+  const imageRecords = uploadedImages.map(({ property_id, image_url }) => ({
+    property_id,
+    image_url,
+  }));
 
-          // Insert into property_images table
-          await supabase.from('property_images').insert([
-            { property_id: property.id, image_url: publicUrl }
-          ]);
+  const { error: imagesDbError } = await supabase
+    .from('property_images')
+    .insert(imageRecords);
 
-          if (i === 0) {
-            featuredImageUrl = publicUrl;
-          }
-        }
+  if (imagesDbError) throw imagesDbError;
 
-        // Update featured image on main property record
-        if (featuredImageUrl) {
-          await supabase
-            .from('properties')
-            .update({ featured_image: featuredImageUrl })
-            .eq('id', property.id);
-        }
-      }
+  // Set the first image as the featured image
+  const featuredImageUrl = uploadedImages[0]?.image_url;
+  if (featuredImageUrl) {
+    await supabase
+      .from('properties')
+      .update({ featured_image: featuredImageUrl })
+      .eq('id', property.id);
+  }
+}
 
       alert('Project added successfully!');
       router.push(`/projects/${slug}`);

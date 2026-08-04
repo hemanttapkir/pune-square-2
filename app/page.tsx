@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
-import { supabase } from '@/lib/supabaseClient'; // wherever your client is initialized
+import { supabase } from '@/lib/supabase.ts'; // wherever your client is initialized
 
 // Shared corridor data
 const CORRIDORS = [

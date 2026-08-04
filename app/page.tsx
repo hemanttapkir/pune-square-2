@@ -466,20 +466,8 @@ export default function HomePage() {
           ) : (
             <div className="project-grid" style={{ marginTop: '24px' }}>
               {filteredProjects.map((item: Project) => {
-                // 1. Get raw image paths array from DB (handles snake_case & camelCase)
-                const rawImages: string[] = (item as any).images_url || item.imagesUrl || (item as any).images || [];
-                // 2. Helper to resolve full Supabase public storage URL
-                const getStorageUrl = (path: string) => {
-                  if (!path) return '/placeholder.svg';
-                  // If already a full http/https URL, return as is
-                  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-                  // Clean leading slashes
-                  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-                  // Construct Supabase public CDN URL
-                  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}https://blenhixylcitexupwrxm.supabase.co/storage/v1/object/public/property-images/${cleanPath}`;
-                };
-                const cardImage = rawImages.length > 0 ? getStorageUrl(rawImages[0]) : '/placeholder.svg';
-                const extraPhotos = Math.max(0, rawImages.length - 1);
+                const cardImage = item.imagesUrl?.[0] || '/placeholder.svg';
+                const extraPhotos = (item.imagesUrl?.length || 0) - 1;
 
                 return (
                   <div className="pcard" key={item.id}>
@@ -488,10 +476,6 @@ export default function HomePage() {
                         src={cardImage}
                         alt={item.title}
                         loading="lazy"
-                        onError={(e) => {
-                          // Fallback if image fails to load or path is invalid
-                          (e.currentTarget as HTMLImageElement).src = '/placeholder.svg';
-                        }}
                       />
                       {extraPhotos > 0 && (
                         <span className="img-count">

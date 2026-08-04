@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
-import { supabase } from '@/lib/supabase.ts'; // wherever your client is initialized
 
 // Shared corridor data
 const CORRIDORS = [
@@ -287,8 +286,8 @@ export default function HomePage() {
               </div>
               <div className="search-field">
                 {ICONS.building}
-                <select value={propertyType}
-  onChange={(e) => setPropertyType(e.target.value as PropertyTypeFilter)}
+                <select value={propertyType} 
+  onChange={(e) => setPropertyType(e.target.value as PropertyTypeFilter)} 
   aria-label="Filter by property type"
 >
   <option value="All types">All types</option>
@@ -467,23 +466,17 @@ export default function HomePage() {
           ) : (
             <div className="project-grid" style={{ marginTop: '24px' }}>
               {filteredProjects.map((item: Project) => {
-                // Resolve each project's first Supabase Storage image to a public URL.
-                const images = item.imagesUrl && item.imagesUrl.length > 0 ? item.imagesUrl : [];
-                const cardImage = images[0]
-                  ? supabase.storage.from('property-images').getPublicUrl(images[0]).data.publicUrl
-                  : undefined;
-                const extraPhotos = images.length - 1;
+                const cardImage = item.imagesUrl?.[0] || '/placeholder.svg';
+                const extraPhotos = (item.imagesUrl?.length || 0) - 1;
 
                 return (
                   <div className="pcard" key={item.id}>
                     <Link href={`/projects/${item.slug}`} className="pcard-img" aria-label={`View details for ${item.title}`}>
-                      {cardImage && (
-                        <img
-                          src={cardImage}
-                          alt={item.title}
-                          loading="lazy"
-                        />
-                      )}
+                      <img
+                        src={cardImage}
+                        alt={item.title}
+                        loading="lazy"
+                      />
                       {extraPhotos > 0 && (
                         <span className="img-count">
                           <span className="img-count-icon">{ICONS.camera}</span>

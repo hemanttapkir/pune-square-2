@@ -390,7 +390,6 @@ export default function HomePage() {
               <p className="eyebrow">Active Inventory</p>
               <h2>Latest Projects</h2>
             </div>
-            <Link href="/admin/add-project" className="btn btn-solid">+ Add New Project</Link>
           </div>
 
           <div className="type-tabs reveal">

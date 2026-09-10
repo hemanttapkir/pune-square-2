@@ -17,16 +17,21 @@ export interface InquiryInput {
  * enquiries, where property_id is left null and any extra context — budget,
  * preferred corridor, etc. — is folded into the message field).
  */
-export async function submitInquiry(input: InquiryInput) {
-  const { error } = await supabase.from('inquiries').insert([
-    {
-      full_name: input.fullName,
-      phone: input.phone,
-      email: input.email || null,
-      message: input.message || null,
-      property_id: input.propertyId || null,
-    },
-  ]);
-
+export async function submitInquiry(data: InquiryInput) {
+  // 1. Save to Supabase Database
+  const { data: lead, error } = await supabase.from('inquiries').insert([data]);
   if (error) throw error;
+
+  // 2. Trigger Email Notification via Resend API
+  try {
+    await fetch('/api/send-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch (err) {
+    console.error('Failed to trigger lead email:', err);
+  }
+
+  return lead;
 }

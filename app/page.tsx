@@ -5,6 +5,15 @@ import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
 import { parsePriceToLakh } from '@/lib/price';
 import { submitInquiry } from '@/lib/inquiries';
+function formatPrice(min?: number | null, max?: number | null): string {
+  if (!min && !max) return 'Price on Request';
+  const toLacsOrCr = (val: number) => {
+    if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
+    return `₹${(val / 100000).toFixed(0)} Lac`;
+  };
+  if (min && max) return `${toLacsOrCr(min)} - ${toLacsOrCr(max)}`;
+  return `Starting ${toLacsOrCr(min || max!)}`;
+}
 
 // Shared corridor data
 const CORRIDORS = [
@@ -566,74 +575,66 @@ export default function HomePage() {
             </p>
           ) : (
             <div className="project-grid" style={{ marginTop: '24px' }}>
-              {filteredProjects.map((item: Project) => {
-                const cardImage = item.imagesUrl?.[0] || '/placeholder.svg';
-                const extraPhotos = (item.imagesUrl?.length || 0) - 1;
-
-                function formatPrice(min_price: (min_price: any, max_price: any) => import("react").ReactNode, max_price: (min_price: any, max_price: any) => import("react").ReactNode): React.ReactNode {
-                  throw new Error('Function not implemented.');
-                }
-
-                return (
-                  <div className="pcard" key={item.id}>
-                    <Link href={`/projects/${item.slug}`} className="pcard-img" aria-label={`View details for ${item.title}`}>
-                      {/* 1. FEATURED IMAGE */}
-                      <img src={item.featured_image || cardImage} alt={item.title} loading="lazy" />
-                      {extraPhotos > 0 && (
-                        <span className="img-count">
-                          <span className="img-count-icon">{ICONS.camera}</span>
-                          +{extraPhotos}
+            {filteredProjects.map((item: Project) => {
+              const cardImage = item.featured_image || item.imagesUrl?.[0] || '/placeholder.svg';
+              const extraPhotos = (item.imagesUrl?.length || 0) - 1;
+          
+              return (
+                <div className="pcard" key={item.id}>
+                  <Link href={`/projects/${item.slug}`} className="pcard-img" aria-label={`View details for ${item.title}`}>
+                    <img src={cardImage} alt={item.title} loading="lazy" />
+                    {extraPhotos > 0 && (
+                      <span className="img-count">
+                        <span className="img-count-icon">{ICONS.camera}</span>
+                        +{extraPhotos}
+                      </span>
+                    )}
+                  </Link>
+          
+                  <div className="pcard-body">
+                    <div className="pcard-top">
+                      <span className="loc">
+                        <span className="loc-icon">{ICONS.pin}</span>
+                        {item.locality || item.city}
+                      </span>
+                      <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {item.propertyType && <span className="status ready">{item.propertyType}</span>}
+                        <span className="status">
+                          {item.rera_id ? 'MahaRERA Verified' : (item.constructionStatus?.replace(/_/g, ' ') || 'New Launch')}
                         </span>
-                      )}
+                      </span>
+                    </div>
+          
+                    <Link href={`/projects/${item.slug}`} className="pcard-title-link">
+                      <h3>{item.title}</h3>
                     </Link>
-                
-                    <div className="pcard-body">
-                      <div className="pcard-top">
-                        {/* 2. LOCALITY */}
-                        <span className="loc">
-                          <span className="loc-icon">{ICONS.pin}</span>
-                          {item.locality || item.city}
-                        </span>
-                        <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                          {item.propertyType && <span className="status ready">{item.propertyType}</span>}
-                          {/* RERA VERIFIED OR CONSTRUCTION STATUS */}
-                          <span className="status">
-                            {item.rera_id ? 'MahaRERA Verified' : (item.constructionStatus?.replace(/_/g, ' ') || 'New Launch')}
-                          </span>
-                        </span>
+          
+                    {item.possessionDate && (
+                      <div className="possession-date" style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                        Possession: <strong>{new Date(item.possessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</strong>
                       </div>
-                
-                      <Link href={`/projects/${item.slug}`} className="pcard-title-link">
-                        <h3>{item.title}</h3>
+                    )}
+          
+                    <div className="divider" />
+          
+                    <div className="meta">
+                      <div className="price">
+                        {item.priceRange || item.price || formatPrice(item.min_price, item.max_price)}
+                        <small>{item.min_price && item.max_price ? 'Price range' : 'Starting Price'}</small>
+                      </div>
+                      <Link
+                        href={`/projects/${item.slug}`}
+                        className="btn btn-solid"
+                        style={{ padding: '6px 14px', fontSize: '12px' }}
+                      >
+                        View Details →
                       </Link>
-                
-                      {/* 3. POSSESSION DATE */}
-                      {item.possessionDate && (
-                        <div className="possession-date" style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                          Possession: <strong>{new Date(item.possessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</strong>
-                        </div>
-                      )}
-                
-                      <div className="divider" />
-                
-                      <div className="meta">
-                        {/* 4. PRICING */}
-                        <div className="price">
-                          {formatPrice(item.min_price, item.max_price)}
-                          <small>{item.min_price && item.max_price ? 'Price range' : 'Starting Price'}</small>
-                        </div>
-                        <Link
-                          href={`/projects/${item.slug}`}
-                          className="btn btn-solid"
-                          style={{ padding: '6px 14px', fontSize: '12px' }}
-                        >
-                          View Details →
-                        </Link>
-                      </div>
                     </div>
                   </div>
-                );              })}
-            </div>
+                </div>
+              );
+            })}
+          </div>
           )}
         </div>
       </section>

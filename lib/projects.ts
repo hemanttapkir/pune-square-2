@@ -1,7 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { getStartingPrice, getPriceRange } from '@/lib/price';
 
-
 export const PROPERTY_TYPES = [
   'Apartment',
   'Villa',
@@ -14,9 +13,9 @@ export const PROPERTY_TYPES = [
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
 
 export interface UnitPricing {
-  unit_type: string;
-  carpet_area: string;
-  price: string;
+  unit_type?: string;
+  carpet_area?: string;
+  price?: string;
 }
 
 export interface Project {
@@ -31,8 +30,11 @@ export interface Project {
   price?: string;
   priceRange?: string | null;
   priceLakh?: number | null;
+  min_price?: number | null;
+  max_price?: number | null;
+  rera_id?: string | null;
   rera?: string;
-  propertyType?: PropertyType;
+  propertyType?: PropertyType | string;
   amenities?: string[];
   unit_pricing?: UnitPricing[];
   imagesUrl?: string[];
@@ -43,8 +45,35 @@ export interface Project {
   createdAt?: string;
 }
 
-function mapProperty(property: any, imagesUrl: string[]): Project {
+// Helper to format prices in Lac/Cr if min_price & max_price exist
+function formatMinMaxPrice(min?: number | null, max?: number | null): string | null {
+  if (!min && !max) return null;
+
+  const toLacsOrCr = (val: number) => {
+    if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
+    return `₹${(val / 100000).toFixed(0)} Lac`;
+  };
+
+  if (min && max) return `${toLacsOrCr(min)} - ${toLacsOrCr(max)}`;
+  return `Starting ${toLacsOrCr(min || max!)}`;
+}
+
+// Maps raw Supabase row into standard Project interface
+function mapProperty(property: any, imagesUrl: string[] = []): Project {
+  // Try calculating from unit_pricing first
   const { label: startingPrice, lakh: priceLakh } = getStartingPrice(property.unit_pricing);
+  const calculatedRange = getPriceRange(property.unit_pricing);
+
+  // Fallback to min_price / max_price if unit_pricing is empty
+  const fallbackPrice = formatMinMaxPrice(property.min_price, property.max_price);
+
+  const finalImages =
+    imagesUrl.length > 0
+      ? imagesUrl
+      : property.featured_image
+      ? [property.featured_image]
+      : [];
+
   return {
     id: property.id,
     title: property.title,
@@ -54,38 +83,43 @@ function mapProperty(property: any, imagesUrl: string[]): Project {
     city: property.city,
     location: `${property.locality || ''}${property.city ? `, ${property.city}` : ''}`,
     address: property.address,
+    min_price: property.min_price,
+    max_price: property.max_price,
+    rera_id: property.rera_id,
     rera: property.rera_id,
     propertyType: property.property_type,
     amenities: property.amenities || [],
     unit_pricing: property.unit_pricing || [],
-    imagesUrl,
+    imagesUrl: finalImages,
     featured_image: property.featured_image,
     status: property.status,
     possessionDate: property.possession_date,
     constructionStatus: property.construction_status,
     createdAt: property.created_at,
-    price: startingPrice ? `${startingPrice}` : undefined,
-    priceRange: getPriceRange(property.unit_pricing),
-    priceLakh,
+    price: startingPrice || fallbackPrice || 'Price on Request',
+    priceRange: calculatedRange || fallbackPrice,
+    priceLakh: priceLakh || (property.min_price ? property.min_price / 100000 : null),
   };
 }
 
-// Fetch all active projects (for homepage/listings)
-export async function getProjects() {
+// Fetch all active projects mapped to Project interface
+export async function getProjects(): Promise<Project[]> {
   const { data, error } = await supabase
-    .from('properties') // Points to your Supabase table
+    .from('properties')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Fetch error:', error.message)
-    return []
+    console.error('Fetch error:', error.message);
+    return [];
   }
 
-  return data
+  return (data || []).map((property) =>
+    mapProperty(property, property.featured_image ? [property.featured_image] : [])
+  );
 }
 
-// Fetch single project by slug, including its full image gallery
+// Fetch single project by slug with gallery images
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
   const { data: property, error } = await supabase
     .from('properties')
@@ -110,8 +144,7 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
   return mapProperty(property, imagesUrl);
 }
 
-// Fetch a handful of other active projects — used for the "similar projects" strip
-// on a project detail page. Prefers same-city matches, then backfills with anything else.
+// Fetch similar projects in the same city
 export async function getSimilarProjects(
   currentId: string,
   city?: string,
@@ -130,8 +163,8 @@ export async function getSimilarProjects(
 export async function createProject(data: {
   title: string;
   locality: string;
-  price: string;
-  rera: boolean;
+  price?: string;
+  rera?: boolean;
   propertyType: PropertyType;
   description?: string;
   imagesUrl: string[];
@@ -158,7 +191,6 @@ export async function createProject(data: {
     throw error;
   }
 
-  // Insert images into property_images table if present
   if (data.imagesUrl.length > 0) {
     const imageRecords = data.imagesUrl.map((url) => ({
       property_id: property.id,

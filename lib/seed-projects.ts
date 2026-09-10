@@ -37,7 +37,6 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
 

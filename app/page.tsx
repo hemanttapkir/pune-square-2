@@ -1,13 +1,5 @@
 'use client';
-const formatPrice = (min?: number, max?: number) => {
-  if (!min && !max) return 'Price on Request';
-  const toLacsOrCr = (val: number) => {
-    if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
-    return `₹${(val / 100000).toFixed(0)} Lac`;
-  };
-  if (min && max) return `${toLacsOrCr(min)} - ${toLacsOrCr(max)}`;
-  return `Starting ${toLacsOrCr(min || max!)}`;
-};
+
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
@@ -35,7 +27,7 @@ const CORRIDORS = [
     localities: ['balewadi', 'baner', 'aundh'],
   },
   {
-    node: '04', tag: 'West / Old Pune', title: 'Kothrud – Warje – Bavdhan',
+    node: '04', tag: 'West / Old Pune', title: 'Kothrud – Warje – NIBM',
     desc: 'Legacy Pune neighbourhoods redeveloping fast, walkable to the old city core.',
     range: '₹95L – ₹13Cr', sub: 'Widest price spread in the city',
     localities: ['kothrud', 'Bavdhan', 'Warje'],
@@ -578,6 +570,10 @@ export default function HomePage() {
                 const cardImage = item.imagesUrl?.[0] || '/placeholder.svg';
                 const extraPhotos = (item.imagesUrl?.length || 0) - 1;
 
+                function formatPrice(min_price: (min_price: any, max_price: any) => import("react").ReactNode, max_price: (min_price: any, max_price: any) => import("react").ReactNode): React.ReactNode {
+                  throw new Error('Function not implemented.');
+                }
+
                 return (
                   <div className="pcard" key={item.id}>
                     <Link href={`/projects/${item.slug}`} className="pcard-img" aria-label={`View details for ${item.title}`}>
@@ -599,10 +595,10 @@ export default function HomePage() {
                           {item.locality || item.city}
                         </span>
                         <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                          {item.property_type && <span className="status ready">{item.property_type}</span>}
+                          {item.propertyType && <span className="status ready">{item.propertyType}</span>}
                           {/* RERA VERIFIED OR CONSTRUCTION STATUS */}
                           <span className="status">
-                            {item.rera_id ? 'MahaRERA Verified' : (item.construction_status?.replace(/_/g, ' ') || 'New Launch')}
+                            {item.rera_id ? 'MahaRERA Verified' : (item.constructionStatus?.replace(/_/g, ' ') || 'New Launch')}
                           </span>
                         </span>
                       </div>
@@ -612,9 +608,9 @@ export default function HomePage() {
                       </Link>
                 
                       {/* 3. POSSESSION DATE */}
-                      {item.possession_date && (
+                      {item.possessionDate && (
                         <div className="possession-date" style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                          Possession: <strong>{new Date(item.possession_date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</strong>
+                          Possession: <strong>{new Date(item.possessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</strong>
                         </div>
                       )}
                 
@@ -636,9 +632,7 @@ export default function HomePage() {
                       </div>
                     </div>
                   </div>
-              
-                );
-              })}
+                );              })}
             </div>
           )}
         </div>

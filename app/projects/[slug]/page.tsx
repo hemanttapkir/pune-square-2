@@ -1,172 +1,382 @@
 'use client';
+
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { notFound, useParams } from 'next/navigation';
-import { getProjectBySlug, getSimilarProjects, Project } from '@/lib/projects';
+import { useParams } from 'next/navigation';
+import { getProjectBySlug, Project } from '@/lib/projects';
 import { submitInquiry } from '@/lib/inquiries';
 
 const ICONS = {
   pin: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z" />
       <circle cx="12" cy="10" r="3" />
     </svg>
   ),
   shield: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4z" />
     </svg>
   ),
   clock: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 3" />
     </svg>
   ),
-  check: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6 9 17l-5-5" />
+  download: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   ),
-  phone: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-    </svg>
-  ),
-  whatsapp: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M17.5 14.4c-.3-.15-1.7-.85-2-.94-.27-.1-.46-.15-.66.15-.2.3-.75.94-.92 1.13-.17.2-.34.22-.63.08-.3-.15-1.24-.46-2.37-1.47-.87-.78-1.47-1.74-1.64-2.03-.17-.3-.02-.46.13-.6.13-.13.3-.34.44-.51.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.66-1.6-.9-2.18-.24-.58-.48-.5-.66-.5-.17 0-.37-.03-.56-.03-.2 0-.52.08-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.7.62.71.23 1.36.2 1.87.12.57-.08 1.7-.7 1.94-1.37.24-.68.24-1.26.17-1.38-.07-.12-.27-.2-.56-.34z" />
-      <path d="M12 2a10 10 0 0 0-8.5 15.24L2 22l4.9-1.44A10 10 0 1 0 12 2z" />
-    </svg>
-  ),
-  camera: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-      <circle cx="12" cy="13" r="4" />
-    </svg>
-  ),
-  ruler: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 8h18v8H3z" />
-      <path d="M7 8v3M11 8v3M15 8v3M19 8v3" />
+  close: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   ),
 };
-
-const STATUS_LABEL: Record<string, string> = {
-  under_construction: 'Under Construction',
-  ready_to_move: 'Ready to Move',
-  new_launch: 'New Launch',
-};
-
-// A handful of generic amenity icons matched loosely by keyword — falls back to a dot.
-function amenityIcon(name: string) {
-  const n = name.toLowerCase();
-  if (n.includes('pool')) return '🏊';
-  if (n.includes('gym') || n.includes('fitness')) return '🏋️';
-  if (n.includes('club')) return '🏛️';
-  if (n.includes('secur') || n.includes('cctv')) return '🛡️';
-  if (n.includes('park') && n.includes('car')) return '🚗';
-  if (n.includes('garden') || n.includes('park')) return '🌳';
-  if (n.includes('play')) return '🧒';
-  if (n.includes('lift') || n.includes('elevator')) return '🛗';
-  if (n.includes('power') || n.includes('backup')) return '🔌';
-  if (n.includes('water')) return '💧';
-  if (n.includes('sport') || n.includes('court') || n.includes('badminton') || n.includes('tennis')) return '🏸';
-  if (n.includes('yoga') || n.includes('meditation')) return '🧘';
-  if (n.includes('wifi') || n.includes('internet')) return '📶';
-  return '✅';
-}
 
 export default function ProjectDetailPage() {
   const params = useParams<{ slug: string }>();
   const [project, setProject] = useState<Project | null | undefined>(undefined);
 
+  // Modal & Form State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState('Download Official Brochure');
+  const [formData, setFormData] = useState({ name: '', phone: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
   useEffect(() => {
-    if (typeof params.slug === 'string') {
-      if (params?.slug) {
-        getProjectBySlug(params.slug).then((data) => setProject(data ?? null));
-      }
+    if (params?.slug && typeof params.slug === 'string') {
+      const decodedSlug = decodeURIComponent(params.slug);
+      getProjectBySlug(decodedSlug).then((data) => setProject(data ?? null));
     }
-  }, [params.slug]);
+  }, [params?.slug]);
+
+  const openLeadModal = (title: string = 'Download Official Brochure') => {
+    setModalTitle(title);
+    setIsSubmitted(false);
+    setIsModalOpen(true);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.phone || !project) return; // Guard ensures project exists
+  
+    setIsSubmitting(true);
+    try {
+      await submitInquiry({
+        project_id: project.id, // Fixed: TypeScript now knows project & project.id exist
+        project_title: project.title || 'Unknown Project',
+        fullName: formData.name,
+        phone: formData.phone,
+      });
+      setIsSubmitted(true);
+      setFormData({ name: '', phone: '' });
+    } catch (err) {
+      console.error('Failed to submit inquiry:', err);
+      alert('There was an issue submitting your request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (project === undefined) {
-    return <div className="wrap" style={{ padding: '64px 32px' }}>Loading…</div>;
+    return <div className="wrap" style={{ padding: '64px 32px' }}>Loading project details…</div>;
   }
 
-  if (notFound() || !project) {
+  if (!project) {
     return (
-      <div className="wrap detail-notfound">
+      <div className="wrap detail-notfound" style={{ padding: '64px 32px' }}>
         <h1>We couldn&apos;t find that project</h1>
         <p>It may have been unpublished or the link is out of date.</p>
-        <Link href="/#projects" className="btn btn-solid">Browse active projects</Link>
+        <Link href="/#projects" className="btn btn-solid" style={{ marginTop: 16, display: 'inline-block' }}>
+          Browse active projects
+        </Link>
       </div>
     );
   }
 
+  const mainImage = project.featured_image || project.imagesUrl?.[0] || '/placeholder.svg';
+
   return (
-    <div className="wrap" style={{ padding: '64px 32px', maxWidth: 800 }}>
-      <Link href="/" style={{ color: 'var(--brick)', fontWeight: 600 }}>← Back to all projects</Link>
-      <h1 style={{ marginTop: 16 }}>{project.title}</h1>
-      <p style={{ color: 'var(--ink-soft)', marginTop: 8 }}>{project.location}</p>
+    <div style={{ paddingBottom: '90px' }}>
+      <div className="wrap" style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto' }}>
+        {/* Navigation back link */}
+        <Link href="/" style={{ color: '#888', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>
+          ← Back to all projects
+        </Link>
 
-      {project.imagesUrl && project.imagesUrl.length > 0 && (
-        <img 
-          src={project.imagesUrl[0]} 
-          alt={project.title}
-          style={{ width: '100%', borderRadius: 'var(--radius)', margin: '24px 0' }}
-        />
-      )}
-
-      {project.rera && (
-        <div style={{ marginTop: 8, fontSize: '14px', color: '#555' }}>
-          <strong>MahaRERA No:</strong> {project.rera}
-        </div>
-      )}
-
-      {/* 1. AMENITIES SECTION */}
-      {project.amenities && project.amenities.length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          <h3>Amenities</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: 12 }}>
-            {project.amenities.map((item: string, index: number) => (
-              <span 
-                key={index} 
-                style={{ backgroundColor: '#f3f4f6', padding: '6px 12px', borderRadius: '16px', fontSize: '14px' }}
-              >
-                {item}
+        {/* Header Title Section */}
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <h1 style={{ fontSize: '32px', fontWeight: 700, margin: 0 }}>{project.title}</h1>
+            <p style={{ color: '#666', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              {ICONS.pin} {project.locality || project.location || project.city}
+            </p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '26px', fontWeight: 800, color: '#10b981' }}>
+              {project.price || 'Price on Request'}
+            </div>
+            {project.rera_id && (
+              <span style={{ fontSize: '12px', background: '#ecfdf5', color: '#047857', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
+                MahaRERA: {project.rera_id}
               </span>
-            ))}
+            )}
           </div>
         </div>
-      )}
 
-      {/* 2. UNIT PRICING SECTION */}
-      {project.unit_pricing && project.unit_pricing.length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          <h3>Unit Configurations & Pricing</h3>
-          <div style={{ marginTop: 12 }}>
-            {project.unit_pricing.map((unit: any, index: number) => (
-              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #eee' }}>
-                <span>{unit.unit_type}</span>
-                <span>{unit.carpet_area}</span>
-                <strong>{unit.price}</strong>
+        {/* Hero Image & Primary Action CTA */}
+        <div style={{ position: 'relative', marginTop: 24, borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+          <img
+            src={mainImage}
+            alt={project.title}
+            style={{ width: '100%', maxHeight: '480px', objectFit: 'cover', display: 'block' }}
+          />
+          <div style={{ position: 'absolute', bottom: 16, right: 16, display: 'flex', gap: 12 }}>
+            <button
+              onClick={() => openLeadModal('Download Official Brochure')}
+              style={{
+                backgroundColor: '#111',
+                color: '#fff',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                border: 'none',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              }}
+            >
+              {ICONS.download} Download Brochure
+            </button>
+          </div>
+        </div>
+
+        {/* Key Overview Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginTop: 32 }}>
+          <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
+            <span style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Property Type</span>
+            <div style={{ fontSize: '16px', fontWeight: 600, marginTop: 4 }}>{project.propertyType || 'Residential Flat'}</div>
+          </div>
+          <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
+            <span style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</span>
+            <div style={{ fontSize: '16px', fontWeight: 600, marginTop: 4 }}>
+              {project.constructionStatus?.replace(/_/g, ' ') || (project.rera_id ? 'MahaRERA Verified' : 'New Launch')}
+            </div>
+          </div>
+          <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
+            <span style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Possession Date</span>
+            <div style={{ fontSize: '16px', fontWeight: 600, marginTop: 4 }}>
+              {project.possessionDate ? new Date(project.possessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'On Request'}
+            </div>
+          </div>
+          <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
+            <span style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Location</span>
+            <div style={{ fontSize: '16px', fontWeight: 600, marginTop: 4 }}>{project.locality || project.city || 'Pune'}</div>
+          </div>
+        </div>
+
+        {/* Project Description */}
+        {project.description && (
+          <div style={{ marginTop: 40 }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 700 }}>About {project.title}</h2>
+            <p style={{ marginTop: 12, lineHeight: 1.7, color: '#374151', fontSize: '15px', whiteSpace: 'pre-line' }}>
+              {project.description}
+            </p>
+          </div>
+        )}
+
+        {/* Brochure Download Banner CTA */}
+        <div style={{ marginTop: 40, background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)', color: '#fff', padding: '28px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
+          <div>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Interested in {project.title}?</h3>
+            <p style={{ margin: '6px 0 0', color: '#9ca3af', fontSize: '14px' }}>Get complete floor plans, pricing sheets, and site layout directly on WhatsApp.</p>
+          </div>
+          <button
+            onClick={() => openLeadModal('Request Detailed Price Sheet')}
+            style={{ backgroundColor: '#10b981', color: '#fff', padding: '12px 24px', borderRadius: '8px', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+          >
+            Get Instant Details
+          </button>
+        </div>
+
+        {/* Unit Configurations & Pricing */}
+        {project.unit_pricing && project.unit_pricing.length > 0 && (
+          <div style={{ marginTop: 40 }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Configurations & Price List</h2>
+            <div style={{ marginTop: 16, border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Unit Type</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Carpet Area</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Price</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.unit_pricing.map((unit: any, index: number) => (
+                    <tr key={index} style={{ borderBottom: index < project.unit_pricing!.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 600 }}>{unit.unit_type || 'N/A'}</td>
+                      <td style={{ padding: '14px 16px', color: '#4b5563' }}>{unit.carpet_area || 'On Request'}</td>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#10b981' }}>{unit.price || 'Price on Request'}</td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                        <button
+                          onClick={() => openLeadModal(`Inquire: ${unit.unit_type}`)}
+                          style={{ background: 'none', border: '1px solid #10b981', color: '#10b981', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          Unlock Price
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Amenities Section */}
+        {project.amenities && project.amenities.length > 0 && (
+          <div style={{ marginTop: 40 }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Amenities & Features</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginTop: 16 }}>
+              {project.amenities.map((item: string, index: number) => (
+                <div
+                  key={index}
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ color: '#10b981' }}>✓</span> {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Sticky Bottom Bar for Mobile & Desktop CTA */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#ffffff', borderTop: '1px solid #e5e7eb', padding: '12px 24px', zIndex: 40, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '12px', color: '#666' }}>Starting Price</div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#111' }}>{project.price || 'Price on Request'}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button
+              onClick={() => openLeadModal('Schedule Site Visit')}
+              style={{ backgroundColor: '#ffffff', color: '#111827', border: '1px solid #d1d5db', padding: '10px 18px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+            >
+              Schedule Site Visit
+            </button>
+            <button
+              onClick={() => openLeadModal('Download Official Brochure')}
+              style={{ backgroundColor: '#10b981', color: '#ffffff', border: 'none', padding: '10px 18px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              {ICONS.download} Download Brochure
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Popup Modal Lead Form */}
+      {isModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '28px', maxWidth: '420px', width: '100%', position: 'relative', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}
+            >
+              {ICONS.close}
+            </button>
+
+            {isSubmitted ? (
+              <div style={{ textAlign: 'center', padding: '24px 8px' }}>
+                <div style={{ fontSize: '48px', marginBottom: 12 }}>✅</div>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Request Submitted!</h3>
+                <p style={{ color: '#6b7280', marginTop: 8, fontSize: '14px' }}>
+                  Thank you! Our property specialist will share the details and brochure with you shortly.
+                </p>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  style={{ marginTop: 20, backgroundColor: '#111827', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', width: '100%' }}
+                >
+                  Close
+                </button>
               </div>
-            ))}
+            ) : (
+              <>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>{modalTitle}</h3>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginTop: 6 }}>
+                  Enter your details to receive full project floor plans and price list.
+                </p>
+
+                <form onSubmit={handleFormSubmit} style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Full Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter your name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Phone Number</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="+91 98765 43210"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    style={{
+                      marginTop: 8,
+                      backgroundColor: '#10b981',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '15px',
+                      cursor: 'pointer',
+                      opacity: isSubmitting ? 0.7 : 1,
+                    }}
+                  >
+                    {isSubmitting ? 'Submitting…' : 'Submit & Download'}
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
-
-      {project.price && (
-        <div className="price" style={{ fontSize: 24, margin: '16px 0' }}>{project.price}</div>
-      )}
-      
-      <span className="status ready">{project.rera ? 'MahaRERA Verified' : 'New Launch'}</span>
-      {project.propertyType && (
-        <span className="status ready" style={{ marginLeft: 8 }}>{project.propertyType}</span>
-      )}
-
-      {project.description && <p style={{ marginTop: 24 }}>{project.description}</p>}
-</div>
+    </div>
   );
 }

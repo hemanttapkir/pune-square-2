@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase';
 export interface InquiryInput {
   fullName: string;
   phone: string;
+  project_id?: string | number;
+  project_title?: string;
   email?: string;
   message?: string;
   /** The property this enquiry relates to. Leave undefined for a general / homepage lead. */

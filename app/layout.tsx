@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
 import { Fraunces, Work_Sans, Space_Grotesk } from 'next/font/google';
+import AppChrome from '@/components/AppChrome';
 import './globals.css';
 
 const fraunces = Fraunces({
@@ -39,7 +40,9 @@ export default function RootLayout({
       lang="en"
       className={`${fraunces.variable} ${workSans.variable} ${spaceGrotesk.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <AppChrome>{children}</AppChrome>
+      </body>
     </html>
   );
 }

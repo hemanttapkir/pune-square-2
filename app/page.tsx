@@ -3,14 +3,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
+import { parsePriceToLakh } from '@/lib/price';
+import { submitInquiry } from '@/lib/inquiries';
 
 // Shared corridor data
 const CORRIDORS = [
   {
-    node: '01', tag: 'West IT Corridor', title: 'Hinjewadi – Wakad – Baner',
+    node: '01', tag: 'West IT Corridor', title: 'Hinjewadi – Wakad – Mahalunge',
     desc: 'Anchored by Rajiv Gandhi Infotech Park. Highest concentration of new launches in the city.',
     range: '₹75L – ₹8Cr', sub: 'Studio to 5BHK penthouse',
-    localities: ['hinjewadi', 'wakad', 'baner'],
+    localities: ['hinjewadi', 'wakad', 'mahalunge'],
   },
   {
     node: '02', tag: 'East IT Corridor', title: 'Kharadi – Magarpatta – Hadapsar',
@@ -19,32 +21,95 @@ const CORRIDORS = [
     localities: ['kharadi', 'magarpatta', 'hadapsar'],
   },
   {
-    node: '03', tag: 'Riverside & NW', title: 'Balewadi – Aundh – Bavdhan',
+    node: '03', tag: 'Riverside', title: 'Balewadi – Baner – Aundh',
     desc: 'Established residential belt near the Mula-Mutha, close to both IT corridors.',
     range: '₹1.0Cr – ₹3.9Cr', sub: 'Mid to upper-mid segment',
-    localities: ['balewadi', 'aundh', 'bavdhan'],
+    localities: ['balewadi', 'baner', 'aundh'],
   },
   {
-    node: '04', tag: 'SW / Old Pune Fringe', title: 'Kothrud – Warje – NIBM',
+    node: '04', tag: 'West / Old Pune', title: 'Kothrud – Warje – NIBM',
     desc: 'Legacy Pune neighbourhoods redeveloping fast, walkable to the old city core.',
     range: '₹95L – ₹13Cr', sub: 'Widest price spread in the city',
-    localities: ['kothrud', 'warje', 'nibm'],
+    localities: ['kothrud', 'Bavdhan', 'Warje'],
   },
   {
-    node: '05', tag: 'Affordable & Industrial', title: 'PCMC – Mamurdi – Punawale',
+    node: '05', tag: 'North & North West', title: 'PCMC – Mamurdi – Punawale',
     desc: "Pimpri-Chinchwad's industrial base plus new affordable-housing supply.",
     range: '₹52L – ₹3.2Cr', sub: 'Best entry-level value',
-    localities: ['pcmc', 'pimpri', 'chinchwad', 'mamurdi', 'punawale'],
+    localities: ['pcmc', 'mamurdi', 'punawale'],
   },
   {
-    node: '06', tag: 'Central Premium', title: 'Koregaon Park – Bund Garden',
+    node: '06', tag: 'Central Premium', title: 'Koregaon Park – Bund Garden - Central Pune',
     desc: "Pune's oldest premium address. Low supply, and it shows in the price ceiling.",
     range: '₹99L – ₹45Cr', sub: "City's ultra-luxury pocket",
-    localities: ['koregaon', 'bund garden', 'bund'],
+    localities: ['koregaon', 'bund garden', 'Central Pune'],
   },
 ];
 
 const BUDGETS = ['Any budget', 'Under ₹80L', '₹80L – ₹1.5Cr', '₹1.5Cr – ₹3Cr', '₹3Cr and above'];
+
+const PROCESS_STEPS = [
+  {
+    n: '01',
+    title: 'Tell us your corridor & budget',
+    desc: 'Two minutes on the shortlist form below — where in Pune, what budget, and when you need to move.',
+  },
+  {
+    n: '02',
+    title: 'We cross-check live inventory',
+    desc: 'We match your brief against current launches across all six corridors, not just one builder\u2019s portfolio.',
+  },
+  {
+    n: '03',
+    title: 'You get three projects, not thirty',
+    desc: 'A short, honest shortlist with RERA status, price-per-sqft context, and possession timelines.',
+  },
+  {
+    n: '04',
+    title: 'Site visits, on your schedule',
+    desc: 'We coordinate visits directly with developer sales teams — no repeat cold calls from five agencies.',
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    quote:
+      'We were getting calls from six different brokers for the same Kharadi project. Pune Square just gave us the price table and RERA number and let us decide.',
+    name: 'Ameya & Shalmali R.',
+    detail: 'Bought a 3BHK in Kharadi, 2025',
+  },
+  {
+    quote:
+      'The carpet-vs-built-up guide alone saved us from overpaying on a Baner listing that quoted super built-up as if it were carpet area.',
+    name: 'Rohit Deshpande',
+    detail: 'Bought a 2BHK in Baner, 2025',
+  },
+  {
+    quote:
+      'Relocating from Bengaluru, we had zero context on Pune corridors. The corridor map made the Hinjewadi vs Kharadi decision obvious in a day.',
+    name: 'Priya Nair',
+    detail: 'Relocated for work, bought in Wakad',
+  },
+];
+
+const FAQS = [
+  {
+    q: 'Is Pune Square a broker or builder?',
+    a: 'Neither — we\u2019re an independent, informational listing and research layer on top of Pune\u2019s residential market. When you request a shortlist, we connect you directly with the relevant developer sales teams; we don\u2019t add a brokerage layer or fee on top.',
+  },
+  {
+    q: 'How current is the pricing shown on each project?',
+    a: 'Unit pricing is pulled from what developers currently list per configuration. Prices on under-construction projects move with construction stage, so always confirm the exact quote with the sales team before booking.',
+  },
+  {
+    q: 'What does a MahaRERA number actually guarantee?',
+    a: 'It confirms the project is registered with the Maharashtra Real Estate Regulatory Authority — meaning disclosed carpet areas, an escrow-linked payment structure, and a stated possession date. It does not guarantee construction quality or that the date will be met; always verify the number on the MahaRERA portal directly.',
+  },
+  {
+    q: 'Do I pay anything for the shortlist?',
+    a: 'No. The shortlist and every guide on this site are free. If you go on to book through a project we\u2019ve introduced, any brokerage is paid by the developer, standard practice across the industry.',
+  },
+];
 
 // Small inline icon set
 const ICONS = {
@@ -110,6 +175,16 @@ const ICONS = {
       <path d="M12 7v5l3 3" />
     </svg>
   ),
+  quote: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M7.17 6C4.86 8.11 3.4 10.9 3.4 14.06c0 3.1 2 5.24 4.6 5.24 2.4 0 4.1-1.8 4.1-4.06 0-2.14-1.5-3.7-3.5-3.7-.4 0-.7.05-.9.1.4-2.1 2-3.9 4.1-4.9L10.4 4.3C9.2 4.8 8.1 5.3 7.17 6zm10.3 0c-2.3 2.1-3.77 4.9-3.77 8.06 0 3.1 2 5.24 4.6 5.24 2.4 0 4.1-1.8 4.1-4.06 0-2.14-1.5-3.7-3.5-3.7-.4 0-.7.05-.9.1.4-2.1 2-3.9 4.1-4.9L20.7 4.3c-1.2.5-2.3 1-3.23 1.7z" />
+    </svg>
+  ),
+  check: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  ),
 };
 
 const PROPERTY_ICONS: Record<PropertyType, React.ReactNode> = {
@@ -151,14 +226,6 @@ const PROPERTY_ICONS: Record<PropertyType, React.ReactNode> = {
   ),
 };
 
-function parsePriceToLakh(price: string): number | null {
-  if (!price) return null;
-  const match = price.match(/([\d.]+)\s*(L|Cr)/i);
-  if (!match) return null;
-  const value = parseFloat(match[1]);
-  return match[2].toLowerCase() === 'cr' ? value * 100 : value;
-}
-
 function matchesBudget(lakh: number, bucket: string): boolean {
   switch (bucket) {
     case 'Under ₹80L': return lakh < 80;
@@ -173,17 +240,28 @@ type PropertyTypeFilter = PropertyType | 'All types';
 
 export default function HomePage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
   const [query, setQuery] = useState('');
   const [corridor, setCorridor] = useState('All corridors');
   const [budget, setBudget] = useState('Any budget');
   const [propertyType, setPropertyType] = useState<PropertyTypeFilter>('All types');
   const [searchTab, setSearchTab] = useState<'buy' | 'rent'>('buy');
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  // Properly awaiting async getProjects call
+  // Lead capture form state
+  const [leadForm, setLeadForm] = useState({
+    fullName: '', phone: '', email: '', corridor: 'Any corridor', budget: 'Any budget', message: '',
+  });
+  const [leadSubmitting, setLeadSubmitting] = useState(false);
+  const [leadSubmitted, setLeadSubmitted] = useState(false);
+  const [leadError, setLeadError] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadProjects() {
+      setLoadingProjects(true);
       const data = await getProjects();
       setProjects(data || []);
+      setLoadingProjects(false);
     }
     loadProjects();
   }, []);
@@ -202,7 +280,7 @@ export default function HomePage() {
         }
       }
       if (budget !== 'Any budget') {
-        const lakh = parsePriceToLakh(item.price || '');
+        const lakh = item.priceLakh ?? parsePriceToLakh(item.price || '');
         if (lakh !== null && !matchesBudget(lakh, budget)) return false;
       }
       if (propertyType !== 'All types' && item.propertyType !== propertyType) {
@@ -231,32 +309,44 @@ export default function HomePage() {
     scrollToProjects();
   }
 
+  function handleLeadChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+    setLeadForm({ ...leadForm, [e.target.name]: e.target.value });
+  }
+
+  async function handleLeadSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLeadError(null);
+    setLeadSubmitting(true);
+    try {
+      const context = [
+        leadForm.corridor !== 'Any corridor' ? `Preferred corridor: ${leadForm.corridor}` : null,
+        leadForm.budget !== 'Any budget' ? `Budget: ${leadForm.budget}` : null,
+        leadForm.message.trim() ? `Message: ${leadForm.message.trim()}` : null,
+      ].filter(Boolean).join(' | ');
+
+      await submitInquiry({
+        fullName: leadForm.fullName.trim(),
+        phone: leadForm.phone.trim(),
+        email: leadForm.email.trim() || undefined,
+        message: context || undefined,
+        propertyId: null,
+      });
+
+      setLeadSubmitted(true);
+      setLeadForm({ fullName: '', phone: '', email: '', corridor: 'Any corridor', budget: 'Any budget', message: '' });
+    } catch (err: any) {
+      console.error(err);
+      setLeadError('Something went wrong submitting your details. Please try again, or call us directly.');
+    } finally {
+      setLeadSubmitting(false);
+    }
+  }
+
   return (
     <>
-      <header>
-        <div className="wrap nav-inner">
-          <div className="logo">
-            Pune<span>Square</span>
-          </div>
-          <nav>
-            <ul>
-              <li><a href="#corridors">Corridors</a></li>
-              <li><a href="#projects">Projects</a></li>
-              <li><a href="#markets">Price Snapshot</a></li>
-              <li><a href="#guides">Guides</a></li>
-            </ul>
-          </nav>
-          <a href="#projects" className="btn btn-solid nav-cta">Browse Projects</a>
-        </div>
-      </header>
-
       <section className="hero-v2">
         <div className="hero-bg">
-          <img
-            src="/hero-photo.jpg"
-            alt="Pune skyline"
-            className="skyline-bg"
-          />
+          <img src="/hero-photo.jpg" alt="Pune skyline" className="skyline-bg" />
           <div className="hero-overlay" />
         </div>
 
@@ -286,15 +376,16 @@ export default function HomePage() {
               </div>
               <div className="search-field">
                 {ICONS.building}
-                <select value={propertyType} 
-  onChange={(e) => setPropertyType(e.target.value as PropertyTypeFilter)} 
-  aria-label="Filter by property type"
->
-  <option value="All types">All types</option>
-  {(PROPERTY_TYPES || []).map((t) => (
-    <option key={t} value={t}>{t}</option>
-  ))}
-</select>
+                <select
+                  value={propertyType}
+                  onChange={(e) => setPropertyType(e.target.value as PropertyTypeFilter)}
+                  aria-label="Filter by property type"
+                >
+                  <option value="All types">All types</option>
+                  {(PROPERTY_TYPES || []).map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
               <div className="search-field">
                 {ICONS.rupee}
@@ -307,6 +398,12 @@ export default function HomePage() {
               <button type="submit" className="btn btn-solid search-submit">Search</button>
             </form>
           </div>
+
+          <div className="hero-trust">
+            <span><span className="hero-trust-icon">{ICONS.shield}</span>MahaRERA status shown on every project</span>
+            <span><span className="hero-trust-icon">{ICONS.users}</span>No brokerage layer on top of listings</span>
+            <span><span className="hero-trust-icon">{ICONS.clock}</span>Shortlist turnaround in under 24 hrs</span>
+          </div>
         </div>
       </section>
 
@@ -317,26 +414,26 @@ export default function HomePage() {
             <h2>Find the configuration you&apos;re after</h2>
           </div>
           <div className="category-grid reveal">
-  {(PROPERTY_TYPES || []).map((type) => {
-    const count = projects.filter((p) => p.propertyType === type).length;
-    return (
-      <button
-        key={type}
-        type="button"
-        className={`category-tile ${propertyType === type ? 'active' : ''}`}
-        onClick={() => {
-          setPropertyType(type);
-          scrollToProjects();
-        }}
-      >
-        <span className="category-icon">{PROPERTY_ICONS[type]}</span>
-        <span className="category-name">{type}</span>
-        <span className="category-count">{count} listing{count === 1 ? '' : 's'}</span>
-      </button>
-    );
-  })}
-</div>
-</div>
+            {(PROPERTY_TYPES || []).map((type) => {
+              const count = projects.filter((p) => p.propertyType === type).length;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  className={`category-tile ${propertyType === type ? 'active' : ''}`}
+                  onClick={() => {
+                    setPropertyType(type);
+                    scrollToProjects();
+                  }}
+                >
+                  <span className="category-icon">{PROPERTY_ICONS[type]}</span>
+                  <span className="category-name">{type}</span>
+                  <span className="category-count">{count} listing{count === 1 ? '' : 's'}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </section>
 
       <div className="stat-strip">
@@ -394,24 +491,24 @@ export default function HomePage() {
           </div>
 
           <div className="type-tabs reveal">
-  <button
-    type="button"
-    className={`type-tab ${propertyType === 'All types' ? 'active' : ''}`}
-    onClick={() => setPropertyType('All types')}
-  >
-    All
-  </button>
-  {(PROPERTY_TYPES || []).map((t) => (
-    <button
-      key={t}
-      type="button"
-      className={`type-tab ${propertyType === t ? 'active' : ''}`}
-      onClick={() => setPropertyType(t)}
-    >
-      {t}
-    </button>
-  ))}
-</div>
+            <button
+              type="button"
+              className={`type-tab ${propertyType === 'All types' ? 'active' : ''}`}
+              onClick={() => setPropertyType('All types')}
+            >
+              All
+            </button>
+            {(PROPERTY_TYPES || []).map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={`type-tab ${propertyType === t ? 'active' : ''}`}
+                onClick={() => setPropertyType(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
 
           <div className="finder">
             <div className="finder-bar">
@@ -455,7 +552,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          {projects.length === 0 ? (
+          {loadingProjects ? (
+            <div className="project-grid" style={{ marginTop: '24px' }}>
+              {[0, 1, 2].map((i) => <div className="pcard pcard-skeleton" key={i} />)}
+            </div>
+          ) : projects.length === 0 ? (
             <p style={{ color: 'var(--ink-soft)', marginTop: '16px' }}>
               No custom projects added yet. <Link href="/admin/add-project" style={{ color: 'var(--brick)', fontWeight: 600 }}>Add one now →</Link>
             </p>
@@ -472,11 +573,7 @@ export default function HomePage() {
                 return (
                   <div className="pcard" key={item.id}>
                     <Link href={`/projects/${item.slug}`} className="pcard-img" aria-label={`View details for ${item.title}`}>
-                      <img
-                        src={cardImage}
-                        alt={item.title}
-                        loading="lazy"
-                      />
+                      <img src={cardImage} alt={item.title} loading="lazy" />
                       {extraPhotos > 0 && (
                         <span className="img-count">
                           <span className="img-count-icon">{ICONS.camera}</span>
@@ -501,8 +598,8 @@ export default function HomePage() {
 
                       <div className="meta">
                         <div className="price">
-                          {item.price || 'Price on Request'}
-                          <small>Starting Price</small>
+                          {item.priceRange || item.price || 'Price on Request'}
+                          <small>{item.priceRange ? 'Price range' : 'Starting Price'}</small>
                         </div>
                         <Link
                           href={`/projects/${item.slug}`}
@@ -518,6 +615,24 @@ export default function HomePage() {
               })}
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="process-section" style={{ background: 'var(--basalt)' }}>
+        <div className="wrap">
+          <div className="section-head reveal">
+            <p className="eyebrow" style={{ color: 'var(--gold)' }}>How it works</p>
+            <h2 style={{ color: 'var(--stone)' }}>From corridor confusion to a shortlist, in four steps</h2>
+          </div>
+          <div className="process-grid reveal">
+            {PROCESS_STEPS.map((step) => (
+              <div className="pstep" key={step.n}>
+                <span className="pstep-n">{step.n}</span>
+                <h4>{step.title}</h4>
+                <p>{step.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -567,7 +682,28 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="guides" style={{ background: 'var(--stone-2)' }}>
+      <section className="testimonial-section" style={{ background: 'var(--stone-2)' }}>
+        <div className="wrap">
+          <div className="section-head reveal">
+            <p className="eyebrow">Recent buyers</p>
+            <h2>What it&apos;s actually like to buy this way</h2>
+          </div>
+          <div className="testimonial-grid reveal">
+            {TESTIMONIALS.map((t) => (
+              <div className="tcard" key={t.name}>
+                <span className="tcard-quote-icon">{ICONS.quote}</span>
+                <p className="tcard-text">{t.quote}</p>
+                <div className="tcard-foot">
+                  <span className="tcard-name">{t.name}</span>
+                  <span className="tcard-detail">{t.detail}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="guides">
         <div className="wrap">
           <div className="section-head reveal">
             <p className="eyebrow">Before you sign anything</p>
@@ -604,52 +740,99 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="cta-band">
+      <section className="faq-section" style={{ background: 'var(--stone-2)' }}>
         <div className="wrap">
-          <h2>Talk to someone who isn&apos;t on commission from a single builder.</h2>
-          <p>Tell us your corridor, budget and timeline — we&apos;ll shortlist three projects worth an actual site visit.</p>
-          <a href="#" className="btn">Get a shortlist</a>
+          <div className="section-head reveal">
+            <p className="eyebrow">Questions</p>
+            <h2>Frequently asked</h2>
+          </div>
+          <div className="faq-list reveal">
+            {FAQS.map((item, i) => (
+              <div className={`faq-item ${openFaq === i ? 'open' : ''}`} key={item.q}>
+                <button
+                  type="button"
+                  className="faq-q"
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  aria-expanded={openFaq === i}
+                >
+                  {item.q}
+                  <span className="faq-toggle">{openFaq === i ? '−' : '+'}</span>
+                </button>
+                {openFaq === i && <p className="faq-a">{item.a}</p>}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </section>
 
-      <footer>
-        <div className="wrap">
-          <div className="foot-grid">
-            <div>
-              <div className="logo">Pune<span>Square</span></div>
-              <p className="about">An independent, informational guide to Pune&apos;s residential real estate — corridors, current launches, and the paperwork that matters. Not a brokerage.</p>
-            </div>
-            <div>
-              <h5>Explore</h5>
-              <ul>
-                <li><a href="#corridors">Corridor map</a></li>
-                <li><a href="#projects">Featured projects</a></li>
-                <li><a href="#markets">Price snapshot</a></li>
-              </ul>
-            </div>
-            <div>
-              <h5>Corridors</h5>
-              <ul>
-                <li><a href="#corridors">Hinjewadi–Wakad–Baner</a></li>
-                <li><a href="#corridors">Kharadi–Magarpatta</a></li>
-                <li><a href="#corridors">Kothrud–NIBM</a></li>
-              </ul>
-            </div>
-            <div>
-              <h5>Guides</h5>
-              <ul>
-                <li><a href="#guides">MahaRERA basics</a></li>
-                <li><a href="#guides">Carpet vs built-up area</a></li>
-                <li><a href="#guides">Home loan basics</a></li>
-              </ul>
-            </div>
+      <section id="lead" className="lead-section">
+        <div className="wrap lead-wrap">
+          <div className="lead-copy reveal">
+            <p className="eyebrow" style={{ color: 'var(--gold)' }}>Get matched, free</p>
+            <h2 style={{ color: 'var(--stone)' }}>Talk to someone who isn&apos;t on commission from a single builder.</h2>
+            <p style={{ color: '#d9d2c2' }}>Tell us your corridor, budget and timeline — we&apos;ll shortlist three projects worth an actual site visit, and connect you directly with the developer sales teams. No spam, no repeat cold calls.</p>
+            <ul className="lead-points">
+              <li><span className="lead-point-icon">{ICONS.check}</span>Personalised shortlist within 24 hours</li>
+              <li><span className="lead-point-icon">{ICONS.check}</span>MahaRERA status checked on every suggestion</li>
+              <li><span className="lead-point-icon">{ICONS.check}</span>Zero brokerage fee to you</li>
+            </ul>
           </div>
-          <div className="foot-bottom">
-            <span>© 2026 Pune Square. Informational content only — verify project and pricing details directly with the developer.</span>
-            <span>Pune, Maharashtra</span>
+
+          <div className="lead-form-card reveal">
+            {leadSubmitted ? (
+              <div className="lead-success">
+                <span className="lead-success-icon">{ICONS.check}</span>
+                <h3>Thanks — we&apos;ve got it.</h3>
+                <p>A member of the team will reach out within 24 hours with your shortlist.</p>
+                <button type="button" className="btn" onClick={() => setLeadSubmitted(false)}>Submit another enquiry</button>
+              </div>
+            ) : (
+              <form onSubmit={handleLeadSubmit} className="lead-form">
+                <div className="lead-form-row">
+                  <label>
+                    Full name *
+                    <input name="fullName" required value={leadForm.fullName} onChange={handleLeadChange} placeholder="Your name" />
+                  </label>
+                  <label>
+                    Phone number *
+                    <input name="phone" required type="tel" value={leadForm.phone} onChange={handleLeadChange} placeholder="+91 98xxxxxxxx" />
+                  </label>
+                </div>
+                <label>
+                  Email
+                  <input name="email" type="email" value={leadForm.email} onChange={handleLeadChange} placeholder="you@email.com" />
+                </label>
+                <div className="lead-form-row">
+                  <label>
+                    Preferred corridor
+                    <select name="corridor" value={leadForm.corridor} onChange={handleLeadChange}>
+                      <option>Any corridor</option>
+                      {CORRIDORS.map((c) => <option key={c.node} value={c.title}>{c.title}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    Budget
+                    <select name="budget" value={leadForm.budget} onChange={handleLeadChange}>
+                      {BUDGETS.map((b) => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </label>
+                </div>
+                <label>
+                  Anything else we should know?
+                  <textarea name="message" rows={3} value={leadForm.message} onChange={handleLeadChange} placeholder="Timeline, must-have amenities, family size…" />
+                </label>
+
+                {leadError && <p className="lead-error">{leadError}</p>}
+
+                <button type="submit" disabled={leadSubmitting} className="btn btn-solid lead-submit">
+                  {leadSubmitting ? 'Submitting…' : 'Get my shortlist →'}
+                </button>
+                <p className="lead-disclaimer">By submitting, you agree to be contacted about matching projects. We don&apos;t sell your data.</p>
+              </form>
+            )}
           </div>
         </div>
-      </footer>
+      </section>
     </>
   );
 }

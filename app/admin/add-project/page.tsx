@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function AddProjectPage() {
   const router = useRouter();
@@ -57,20 +58,14 @@ export default function AddProjectPage() {
         .trim()
         .replace(/[^\w\s-]/g, '')
         .replace(/[\s_-]+/g, '-');
-      
+
       // Add unique suffix
       const slug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
-      
+
       const amenitiesArray = formData.amenitiesInput
         ? formData.amenitiesInput.split(',').map((item) => item.trim()).filter(Boolean)
         : [];
-      
-      const newProject = {
-        ...formData,
-        slug: slug,
-        // ...other properties
-      };
-      
+
       // Send to Supabase...
       // 1. Insert Property Row First
       const { data: property, error: propertyError } = await supabase
@@ -98,63 +93,57 @@ export default function AddProjectPage() {
       if (propertyError) throw propertyError;
       if (!property?.id) throw new Error('Failed to retrieve project ID.');
 
-// 2. Safe Parallel Image Upload
-if (images && images.length > 0) {
-  const imageFiles = Array.from(images);
+      // 2. Safe Image Upload
+      let featuredImageUrl = '';
 
-  const uploadPromises = imageFiles.map(async (file, i) => {
-    const rawExt = file.name.split('.').pop() || 'jpg';
-    const cleanExt = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const storagePath = `${property.id}/${Date.now()}_${i}.${cleanExt}`;
+      if (images && images.length > 0) {
+        for (let i = 0; i < images.length; i++) {
+          const file = images[i];
 
-    // Upload to bucket
-    const { error: uploadError } = await supabase.storage
-      .from('property-images')
-      .upload(storagePath, file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
+          // Sanitize Extension (force clean lowercase alphanumerics like jpg, png, webp)
+          const rawExt = file.name.split('.').pop() || 'jpg';
+          const cleanExt = rawExt.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    if (uploadError) {
-      throw new Error(`Upload failed for ${file.name}: ${uploadError.message}`);
-    }
+          // Strict path construction: e.g. "a1b2c3d4-1234-5678/1722700000_0.jpg"
+          const storagePath = `${property.id}/${Date.now()}_${i}.${cleanExt}`;
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('property-images')
-      .getPublicUrl(storagePath);
+          const { error: uploadError } = await supabase.storage
+            .from('property-images')
+            .upload(storagePath, file, {
+              cacheControl: '3600',
+              upsert: true,
+            });
 
-    return {
-      property_id: property.id,
-      image_url: urlData.publicUrl,
-      is_first: i === 0,
-    };
-  });
+          if (uploadError) {
+            console.error('Storage Upload Error Detail:', uploadError);
+            throw new Error(`Storage Error (${uploadError.name}): ${uploadError.message}`);
+          }
 
-  // Execute all uploads concurrently
-  const uploadedImages = await Promise.all(uploadPromises);
+          // Fetch Public URL
+          const { data: urlData } = supabase.storage
+            .from('property-images')
+            .getPublicUrl(storagePath);
 
-  // Bulk insert image records into database
-  const imageRecords = uploadedImages.map(({ property_id, image_url }) => ({
-    property_id,
-    image_url,
-  }));
+          const publicUrl = urlData.publicUrl;
 
-  const { error: imagesDbError } = await supabase
-    .from('property_images')
-    .insert(imageRecords);
+          // Insert into property_images table
+          await supabase.from('property_images').insert([
+            { property_id: property.id, image_url: publicUrl }
+          ]);
 
-  if (imagesDbError) throw imagesDbError;
+          if (i === 0) {
+            featuredImageUrl = publicUrl;
+          }
+        }
 
-  // Set the first image as the featured image
-  const featuredImageUrl = uploadedImages[0]?.image_url;
-  if (featuredImageUrl) {
-    await supabase
-      .from('properties')
-      .update({ featured_image: featuredImageUrl })
-      .eq('id', property.id);
-  }
-}
+        // Update featured image on main property record
+        if (featuredImageUrl) {
+          await supabase
+            .from('properties')
+            .update({ featured_image: featuredImageUrl })
+            .eq('id', property.id);
+        }
+      }
 
       alert('Project added successfully!');
       router.push(`/projects/${slug}`);
@@ -168,9 +157,10 @@ if (images && images.length > 0) {
 
   return (
     <div style={{ maxWidth: '650px', margin: '40px auto', padding: '24px' }}>
-      <h1>Add New Real Estate Project</h1>
+      <Link href="/admin" style={{ fontSize: '13px', color: '#666' }}>← Back to dashboard</Link>
+      <h1 style={{ marginTop: '8px' }}>Add New Real Estate Project</h1>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '24px' }}>
-        
+
         <div>
           <label>Project Title *</label>
           <input name="title" required value={formData.title} onChange={handleChange} style={{ width: '100%', padding: '8px' }} />
@@ -178,12 +168,12 @@ if (images && images.length > 0) {
 
         <div>
           <label>MahaRERA Registration No.</label>
-          <input 
-            name="rera_id" 
-            placeholder="e.g. P52100012345" 
-            value={formData.rera_id} 
-            onChange={handleChange} 
-            style={{ width: '100%', padding: '8px' }} 
+          <input
+            name="rera_id"
+            placeholder="e.g. P52100012345"
+            value={formData.rera_id}
+            onChange={handleChange}
+            style={{ width: '100%', padding: '8px' }}
           />
         </div>
 
@@ -223,23 +213,23 @@ if (images && images.length > 0) {
           <label style={{ fontWeight: 'bold' }}>Unit Configurations & Pricing</label>
           {unitPricing.map((unit, i) => (
             <div key={i} style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-              <input 
-                placeholder="Type (e.g. 2 BHK)" 
-                value={unit.unit_type} 
-                onChange={(e) => handleUnitChange(i, 'unit_type', e.target.value)} 
-                style={{ flex: 1, padding: '6px' }} 
+              <input
+                placeholder="Type (e.g. 2 BHK)"
+                value={unit.unit_type}
+                onChange={(e) => handleUnitChange(i, 'unit_type', e.target.value)}
+                style={{ flex: 1, padding: '6px' }}
               />
-              <input 
-                placeholder="Carpet Area (e.g. 750 sqft)" 
-                value={unit.carpet_area} 
-                onChange={(e) => handleUnitChange(i, 'carpet_area', e.target.value)} 
-                style={{ flex: 1, padding: '6px' }} 
+              <input
+                placeholder="Carpet Area (e.g. 750 sqft)"
+                value={unit.carpet_area}
+                onChange={(e) => handleUnitChange(i, 'carpet_area', e.target.value)}
+                style={{ flex: 1, padding: '6px' }}
               />
-              <input 
-                placeholder="Price (e.g. ₹65 Lakhs)" 
-                value={unit.price} 
-                onChange={(e) => handleUnitChange(i, 'price', e.target.value)} 
-                style={{ flex: 1, padding: '6px' }} 
+              <input
+                placeholder="Price (e.g. 65L or 1.2Cr)"
+                value={unit.price}
+                onChange={(e) => handleUnitChange(i, 'price', e.target.value)}
+                style={{ flex: 1, padding: '6px' }}
               />
               {unitPricing.length > 1 && (
                 <button type="button" onClick={() => removeUnitRow(i)} style={{ color: 'red' }}>✕</button>
@@ -249,16 +239,19 @@ if (images && images.length > 0) {
           <button type="button" onClick={addUnitRow} style={{ marginTop: '8px', padding: '4px 8px' }}>
             + Add Unit Type
           </button>
+          <p style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
+            Tip: use a plain number + L/Cr (e.g. "65L", "1.2Cr") so the site can auto-calculate starting price and price ranges.
+          </p>
         </div>
 
         <div>
           <label>Amenities (Comma-separated)</label>
-          <input 
-            name="amenitiesInput" 
-            placeholder="Swimming Pool, Gym, Clubhouse, Security" 
-            value={formData.amenitiesInput} 
-            onChange={handleChange} 
-            style={{ width: '100%', padding: '8px' }} 
+          <input
+            name="amenitiesInput"
+            placeholder="Swimming Pool, Gym, Clubhouse, Security"
+            value={formData.amenitiesInput}
+            onChange={handleChange}
+            style={{ width: '100%', padding: '8px' }}
           />
         </div>
 

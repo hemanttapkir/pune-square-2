@@ -1,6 +1,7 @@
- 'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 interface Inquiry {
@@ -10,7 +11,7 @@ interface Inquiry {
   phone: string;
   email: string | null;
   message: string | null;
-  property_id: string;
+  property_id: string | null;
   properties?: {
     title: string;
     slug: string;
@@ -47,11 +48,18 @@ export default function AdminInquiriesPage() {
     setLoading(false);
   };
 
+  function projectLabel(item: Inquiry) {
+    if (item.properties?.title) return item.properties.title;
+    if (item.property_id === null) return 'General enquiry';
+    return 'Unknown project';
+  }
+
   return (
-    <div style={{ maxWidth: '1000px', margin: '40px auto', padding: '0 24px' }}>
-      <h1>Incoming Project Leads</h1>
+    <div style={{ maxWidth: '1100px', margin: '40px auto', padding: '0 24px' }}>
+      <Link href="/admin" style={{ fontSize: '13px', color: '#666' }}>← Back to dashboard</Link>
+      <h1 style={{ marginTop: '8px' }}>Incoming Leads</h1>
       <p style={{ color: '#666', marginBottom: '24px' }}>
-        Inquiries submitted by potential buyers on project detail pages.
+        Includes both project-specific enquiries and general shortlist requests submitted on the homepage.
       </p>
 
       {loading ? (
@@ -76,14 +84,20 @@ export default function AdminInquiriesPage() {
                   {new Date(item.created_at).toLocaleDateString()}
                 </td>
                 <td style={{ padding: '12px', fontWeight: 'bold' }}>
-                  {item.properties?.title || 'Unknown Project'}
+                  {item.properties?.slug ? (
+                    <Link href={`/projects/${item.properties.slug}`} target="_blank" style={{ color: 'inherit' }}>
+                      {projectLabel(item)}
+                    </Link>
+                  ) : (
+                    <span style={{ color: item.property_id === null ? '#4b5563' : 'inherit' }}>{projectLabel(item)}</span>
+                  )}
                 </td>
                 <td style={{ padding: '12px' }}>{item.full_name}</td>
                 <td style={{ padding: '12px', fontSize: '14px' }}>
                   <div>📞 {item.phone}</div>
                   {item.email && <div style={{ color: '#666', fontSize: '12px' }}>✉️ {item.email}</div>}
                 </td>
-                <td style={{ padding: '12px', fontSize: '14px', maxWidth: '300px' }}>
+                <td style={{ padding: '12px', fontSize: '14px', maxWidth: '320px' }}>
                   {item.message || <span style={{ color: '#999' }}>No message</span>}
                 </td>
               </tr>

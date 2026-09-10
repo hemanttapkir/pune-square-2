@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { getProjectBySlug, getSimilarProjects, Project } from '@/lib/projects';
 import { submitInquiry } from '@/lib/inquiries';
 
@@ -94,7 +94,7 @@ export default function ProjectDetailPage() {
     return <div className="wrap" style={{ padding: '64px 32px' }}>Loading…</div>;
   }
 
-  if (notFound || !project) {
+  if (notFound() || !project) {
     return (
       <div className="wrap detail-notfound">
         <h1>We couldn&apos;t find that project</h1>

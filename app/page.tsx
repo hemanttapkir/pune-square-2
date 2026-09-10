@@ -1,5 +1,13 @@
 'use client';
-
+const formatPrice = (min?: number, max?: number) => {
+  if (!min && !max) return 'Price on Request';
+  const toLacsOrCr = (val: number) => {
+    if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
+    return `₹${(val / 100000).toFixed(0)} Lac`;
+  };
+  if (min && max) return `${toLacsOrCr(min)} - ${toLacsOrCr(max)}`;
+  return `Starting ${toLacsOrCr(min || max!)}`;
+};
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
@@ -27,7 +35,7 @@ const CORRIDORS = [
     localities: ['balewadi', 'baner', 'aundh'],
   },
   {
-    node: '04', tag: 'West / Old Pune', title: 'Kothrud – Warje – NIBM',
+    node: '04', tag: 'West / Old Pune', title: 'Kothrud – Warje – Bavdhan',
     desc: 'Legacy Pune neighbourhoods redeveloping fast, walkable to the old city core.',
     range: '₹95L – ₹13Cr', sub: 'Widest price spread in the city',
     localities: ['kothrud', 'Bavdhan', 'Warje'],
@@ -573,7 +581,8 @@ export default function HomePage() {
                 return (
                   <div className="pcard" key={item.id}>
                     <Link href={`/projects/${item.slug}`} className="pcard-img" aria-label={`View details for ${item.title}`}>
-                      <img src={cardImage} alt={item.title} loading="lazy" />
+                      {/* 1. FEATURED IMAGE */}
+                      <img src={item.featured_image || cardImage} alt={item.title} loading="lazy" />
                       {extraPhotos > 0 && (
                         <span className="img-count">
                           <span className="img-count-icon">{ICONS.camera}</span>
@@ -581,25 +590,41 @@ export default function HomePage() {
                         </span>
                       )}
                     </Link>
-
+                
                     <div className="pcard-body">
                       <div className="pcard-top">
-                        <span className="loc"><span className="loc-icon">{ICONS.pin}</span>{item.location}</span>
+                        {/* 2. LOCALITY */}
+                        <span className="loc">
+                          <span className="loc-icon">{ICONS.pin}</span>
+                          {item.locality || item.city}
+                        </span>
                         <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                          {item.propertyType && <span className="status ready">{item.propertyType}</span>}
-                          <span className="status">{item.rera ? 'MahaRERA Verified' : 'New Launch'}</span>
+                          {item.property_type && <span className="status ready">{item.property_type}</span>}
+                          {/* RERA VERIFIED OR CONSTRUCTION STATUS */}
+                          <span className="status">
+                            {item.rera_id ? 'MahaRERA Verified' : (item.construction_status?.replace(/_/g, ' ') || 'New Launch')}
+                          </span>
                         </span>
                       </div>
-
+                
                       <Link href={`/projects/${item.slug}`} className="pcard-title-link">
                         <h3>{item.title}</h3>
                       </Link>
+                
+                      {/* 3. POSSESSION DATE */}
+                      {item.possession_date && (
+                        <div className="possession-date" style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                          Possession: <strong>{new Date(item.possession_date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</strong>
+                        </div>
+                      )}
+                
                       <div className="divider" />
-
+                
                       <div className="meta">
+                        {/* 4. PRICING */}
                         <div className="price">
-                          {item.priceRange || item.price || 'Price on Request'}
-                          <small>{item.priceRange ? 'Price range' : 'Starting Price'}</small>
+                          {formatPrice(item.min_price, item.max_price)}
+                          <small>{item.min_price && item.max_price ? 'Price range' : 'Starting Price'}</small>
                         </div>
                         <Link
                           href={`/projects/${item.slug}`}
@@ -611,6 +636,7 @@ export default function HomePage() {
                       </div>
                     </div>
                   </div>
+              
                 );
               })}
             </div>

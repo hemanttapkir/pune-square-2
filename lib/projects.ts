@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { getStartingPrice, getPriceRange } from '@/lib/price';
 
+
 export const PROPERTY_TYPES = [
   'Apartment',
   'Villa',
@@ -70,18 +71,18 @@ function mapProperty(property: any, imagesUrl: string[]): Project {
 }
 
 // Fetch all active projects (for homepage/listings)
-export async function getProjects(): Promise<Project[]> {
+export async function getProjects() {
   const { data, error } = await supabase
-    .from('properties')
+    .from('properties') // Points to your Supabase table
     .select('*')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
 
-  if (error || !data) return [];
+  if (error) {
+    console.error('Fetch error:', error.message)
+    return []
+  }
 
-  return data.map((property) =>
-    mapProperty(property, property.featured_image ? [property.featured_image] : [])
-  );
+  return data
 }
 
 // Fetch single project by slug, including its full image gallery

@@ -11,7 +11,7 @@ export default function AgentPage() {
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState('');
   const [rera, setRera] = useState(false);
-  const [propertyType, setPropertyType] = useState<PropertyType>('Apartment');
+  const [propertyType, setPropertyType] = useState<PropertyType>('1BHK');
   const [imagesUrl, setImagesUrl] = useState('');
   const [description, setDescription] = useState('');
 

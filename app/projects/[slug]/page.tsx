@@ -153,7 +153,7 @@ export default function ProjectDetailPage() {
   const images: string[] = useMemo(() => {
     if (!project) return [];
     const list = [project.featured_image, ...(project.imagesUrl || [])].filter(Boolean) as string[];
-    return list.length ? Array.from(new Set(list)) : ['/placeholder.svg'];
+    return list.length ? Array.from(new Set(list)) : ['/placeholder.png'];
   }, [project]);
 
   const unitGroups = useMemo(() => {

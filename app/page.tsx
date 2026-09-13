@@ -585,7 +585,7 @@ export default function HomePage() {
           ) : (
             <div className="project-grid" style={{ marginTop: '24px' }}>
             {filteredProjects.map((item: Project) => {
-              const cardImage = item.featured_image || item.imagesUrl?.[0] || '/placeholder.svg';
+              const cardImage = item.featured_image || item.imagesUrl?.[0] || '/placeholder.png';
               const extraPhotos = (item.imagesUrl?.length || 0) - 1;
           
               return (

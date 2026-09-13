@@ -2,11 +2,14 @@ import { supabase } from '@/lib/supabase';
 import { getStartingPrice, getPriceRange } from '@/lib/price';
 
 export const PROPERTY_TYPES = [
-  'Apartment',
+  '1BHK',
+  '2BHK',
+  '3BHK',
+  '4BHK',
   'Villa',
   'Studio',
   'Penthouse',
-  'Plot',
+  'Duplex',
   'Commercial',
 ] as const;
 

@@ -21,25 +21,25 @@ const CORRIDORS = [
     node: '01', tag: 'West IT Corridor', title: 'Hinjewadi – Wakad – Mahalunge',
     desc: 'Anchored by Rajiv Gandhi Infotech Park. Highest concentration of new launches in the city.',
     range: '₹75L – ₹8Cr', sub: 'Studio to 5BHK penthouse',
-    localities: ['hinjewadi', 'wakad', 'mahalunge'],
+    localities: ['hinjewadi', 'wakad', 'mahalunge', 'sus', 'tathawade'],
   },
   {
-    node: '02', tag: 'East IT Corridor', title: 'Kharadi – Magarpatta – Hadapsar',
+    node: '02', tag: 'East IT Corridor', title: 'Kharadi – Wagholi – Mundhwa',
     desc: 'EON IT Park and Magarpatta City drive demand. Fastest-growing rental yields in Pune.',
     range: '₹85L – ₹7.5Cr', sub: '2BHK to 4BHK villas',
-    localities: ['kharadi', 'magarpatta', 'hadapsar'],
+    localities: ['kharadi', 'magarpatta', 'vimannagar', 'mundhwa'],
   },
   {
-    node: '03', tag: 'Riverside', title: 'Balewadi – Baner – Aundh',
+    node: '03', tag: 'Premium Riverside', title: 'Balewadi – Baner – Aundh',
     desc: 'Established residential belt near the Mula-Mutha, close to both IT corridors.',
     range: '₹1.0Cr – ₹3.9Cr', sub: 'Mid to upper-mid segment',
     localities: ['balewadi', 'baner', 'aundh'],
   },
   {
-    node: '04', tag: 'West / Old Pune', title: 'Kothrud – Warje – NIBM',
+    node: '04', tag: 'West / Central Pune', title: 'Kothrud – Warje – Bavdhan',
     desc: 'Legacy Pune neighbourhoods redeveloping fast, walkable to the old city core.',
-    range: '₹95L – ₹13Cr', sub: 'Widest price spread in the city',
-    localities: ['kothrud', 'Bavdhan', 'Warje'],
+    range: '₹95L – ₹20Cr', sub: 'Widest price spread in the city',
+    localities: ['kothrud', 'Bavdhan', 'Warje', 'Paud Road', 'Karve Road', 'Bhugaon', 'sinhagad road', 'pune'],
   },
   {
     node: '05', tag: 'North & North West', title: 'PCMC – Mamurdi – Punawale',
@@ -48,11 +48,17 @@ const CORRIDORS = [
     localities: ['pcmc', 'mamurdi', 'punawale'],
   },
   {
-    node: '06', tag: 'Central Premium', title: 'Koregaon Park – Bund Garden - Central Pune',
+    node: '06', tag: 'East Premium', title: 'Koregaon Park – Kalyani Nagar - Viman Nagar',
     desc: "Pune's oldest premium address. Low supply, and it shows in the price ceiling.",
     range: '₹99L – ₹45Cr', sub: "City's ultra-luxury pocket",
-    localities: ['koregaon', 'bund garden', 'Central Pune'],
+    localities: ['koregaon', 'bund garden', 'Kalyani nagar', 'vimannagar'],
   },
+  {
+    node: '07', tag: 'South Pune', title: 'NIBM – Hadapsar – Manjari',
+    desc: 'South Pune is a mix of IT, industrial, and residential. Good value for mid-segment buyers.',
+    range: '₹65L – ₹3.5Cr', sub: 'Mid-segment villas and apartments',
+    localities: ['nibm', 'hadapsar', 'magarpatta', 'manjari', 'kondhwa'],
+  }
 ];
 
 const BUDGETS = ['Any budget', 'Under ₹80L', '₹80L – ₹1.5Cr', '₹1.5Cr – ₹3Cr', '₹3Cr and above'];
@@ -197,7 +203,10 @@ const ICONS = {
 };
 
 const PROPERTY_ICONS: Record<PropertyType, React.ReactNode> = {
-  Apartment: ICONS.building,
+  "1BHK": ICONS.building,
+  "2BHK": ICONS.building,
+  "3BHK": ICONS.building,
+  "4BHK": ICONS.building,
   Villa: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 11 12 3l9 8" />
@@ -218,7 +227,7 @@ const PROPERTY_ICONS: Record<PropertyType, React.ReactNode> = {
       <path d="M9 22v-5h6v5" />
     </svg>
   ),
-  Plot: (
+  Duplex: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 9 12 4l9 5-9 5-9-5z" />
       <path d="M3 9v7l9 5 9-5V9" />
@@ -470,7 +479,7 @@ export default function HomePage() {
         <div className="wrap">
           <div className="section-head reveal">
             <p className="eyebrow">The corridor map</p>
-            <h2>Pune doesn&apos;t have one market. It has six.</h2>
+            <h2>Pune doesn&apos;t have one market. It has seven.</h2>
             <p>Price in this city follows infrastructure, not just distance from Shivajinagar. Scroll along the line — each stop is a corridor with its own IT anchor, price band, and buyer profile.</p>
           </div>
         </div>

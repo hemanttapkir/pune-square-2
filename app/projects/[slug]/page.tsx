@@ -1,31 +1,69 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { Fraunces, Inter } from 'next/font/google';
 import { getProjectBySlug, Project } from '@/lib/projects';
 import { submitInquiry } from '@/lib/inquiries';
 
+/**
+ * OPTIONAL FIELDS
+ * ----------------
+ * This page reads a few extra, optional fields off `Project` if you have them.
+ * None of them are required — every section that uses them is guarded and
+ * simply hides itself when the data isn't there. Add them to your Project
+ * type whenever it's convenient:
+ *
+ *   developer?: string;
+ *   developerYears?: number;         // years in business
+ *   developerProjectCount?: number;  // delivered projects
+ *   totalUnits?: number;
+ *   latitude?: number;
+ *   longitude?: number;
+ */
+
+const display = Fraunces({ subsets: ['latin'], weight: ['500', '600'], style: ['normal', 'italic'], variable: '--font-display' });
+const body = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body' });
+
+// ---------------------------------------------------------------------------
+// Design tokens
+// ---------------------------------------------------------------------------
+const C = {
+  paper: '#FBF9F4',
+  paperRaised: '#FFFFFF',
+  ink: '#1B2420',
+  inkSoft: '#5B655F',
+  hairline: '#E4DFD1',
+  hairlineStrong: '#D3CBB8',
+  pine: '#0E5C48',
+  pineDeep: '#0A4436',
+  pineTint: '#EAF2EE',
+  gold: '#A9782F',
+  goldTint: '#F7EFDE',
+  danger: '#B3452F',
+};
+
 const ICONS = {
   pin: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z" />
       <circle cx="12" cy="10" r="3" />
     </svg>
   ),
-  shield: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4z" />
-    </svg>
-  ),
   clock: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 3" />
     </svg>
   ),
+  shield: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4z" />
+    </svg>
+  ),
   download: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="7 10 12 15 17 10" />
       <line x1="12" y1="15" x2="12" y2="3" />
@@ -37,11 +75,61 @@ const ICONS = {
       <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   ),
+  share: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+      <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+    </svg>
+  ),
+  check: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
+  chevronRight: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  ),
 };
+
+// ---------------------------------------------------------------------------
+// Small helpers
+// ---------------------------------------------------------------------------
+
+/** Best-effort parse of strings like "₹75.00 L" / "1.2 Cr" / "7500000" into rupees. */
+function parseRupees(value?: string | number | null): number | null {
+  if (value == null) return null;
+  if (typeof value === 'number') return value;
+  const cleaned = value.replace(/[₹,\s]/g, '');
+  const crMatch = cleaned.match(/^([\d.]+)\s*(cr|crore)/i);
+  if (crMatch) return parseFloat(crMatch[1]) * 1e7;
+  const lMatch = cleaned.match(/^([\d.]+)\s*(l|lac|lakh)/i);
+  if (lMatch) return parseFloat(lMatch[1]) * 1e5;
+  const num = parseFloat(cleaned);
+  return Number.isFinite(num) ? num : null;
+}
+
+function formatRupees(n: number): string {
+  if (n >= 1e7) return `₹${(n / 1e7).toFixed(2).replace(/\.00$/, '')} Cr`;
+  if (n >= 1e5) return `₹${(n / 1e5).toFixed(2).replace(/\.00$/, '')} L`;
+  return `₹${Math.round(n).toLocaleString('en-IN')}`;
+}
+
+function computeEmi(principal: number, annualRatePct: number, years: number): number {
+  const r = annualRatePct / 12 / 100;
+  const n = years * 12;
+  if (r === 0) return principal / n;
+  const emi = (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+  return emi;
+}
 
 export default function ProjectDetailPage() {
   const params = useParams<{ slug: string }>();
   const [project, setProject] = useState<Project | null | undefined>(undefined);
+  const [activeImage, setActiveImage] = useState(0);
+  const [activeUnitType, setActiveUnitType] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,6 +138,11 @@ export default function ProjectDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // EMI calculator state
+  const [loanLakhs, setLoanLakhs] = useState<number>(50);
+  const [interestRate, setInterestRate] = useState<number>(8.5);
+  const [tenureYears, setTenureYears] = useState<number>(20);
+
   useEffect(() => {
     if (params?.slug && typeof params.slug === 'string') {
       const decodedSlug = decodeURIComponent(params.slug);
@@ -57,20 +150,87 @@ export default function ProjectDetailPage() {
     }
   }, [params?.slug]);
 
+  const images: string[] = useMemo(() => {
+    if (!project) return [];
+    const list = [project.featured_image, ...(project.imagesUrl || [])].filter(Boolean) as string[];
+    return list.length ? Array.from(new Set(list)) : ['/placeholder.svg'];
+  }, [project]);
+
+  const unitGroups = useMemo(() => {
+    const pricing: any[] = (project as any)?.unit_pricing || [];
+    const map = new Map<string, any[]>();
+    pricing.forEach((u) => {
+      const key = u.unit_type || 'Configuration';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(u);
+    });
+    return Array.from(map.entries()).map(([type, units]) => ({ type, units }));
+  }, [project]);
+
+  useEffect(() => {
+    if (unitGroups.length && !activeUnitType) setActiveUnitType(unitGroups[0].type);
+  }, [unitGroups, activeUnitType]);
+
+  const activeGroup = unitGroups.find((g) => g.type === activeUnitType) || unitGroups[0];
+
+  const priceRange = useMemo(() => {
+    const pricing: any[] = (project as any)?.unit_pricing || [];
+    const values = pricing.map((u) => parseRupees(u.price)).filter((n): n is number => n != null);
+    if (!values.length) return null;
+    return { min: Math.min(...values), max: Math.max(...values) };
+  }, [project]);
+
+  // Seed the EMI calculator once we know the price range
+  useEffect(() => {
+    if (priceRange) setLoanLakhs(Math.round((priceRange.min * 0.8) / 1e5));
+  }, [priceRange]);
+
+  const highlights = useMemo(() => {
+    if (!project) return [];
+    const items: string[] = [];
+    if (project.rera_id) items.push(`Registered with MahaRERA under ${project.rera_id}`);
+    if (unitGroups.length) items.push(`${unitGroups.length} configuration${unitGroups.length > 1 ? 's' : ''} available — ${unitGroups.map((g) => g.type).join(', ')}`);
+    if (project.possessionDate) {
+      items.push(
+        `Possession expected ${new Date(project.possessionDate).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}`
+      );
+    }
+    if (project.amenities?.length) items.push(`${project.amenities.length} on-site amenities, including ${project.amenities.slice(0, 3).join(', ')}`);
+    if ((project as any).developer) items.push(`Developed by ${(project as any).developer}`);
+    return items;
+  }, [project, unitGroups]);
+
   const openLeadModal = (title: string = 'Download Official Brochure') => {
     setModalTitle(title);
     setIsSubmitted(false);
     setIsModalOpen(true);
   };
 
+  const handleShare = async () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    if (typeof navigator !== 'undefined' && (navigator as any).share) {
+      try {
+        await (navigator as any).share({ title: project?.title, url });
+        return;
+      } catch {
+        /* fall through to copy */
+      }
+    }
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 1800);
+    }
+  };
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || !project) return; // Guard ensures project exists
-  
+    if (!formData.name || !formData.phone || !project) return;
+
     setIsSubmitting(true);
     try {
       await submitInquiry({
-        project_id: project.id, // Fixed: TypeScript now knows project & project.id exist
+        project_id: project.id,
         project_title: project.title || 'Unknown Project',
         fullName: formData.name,
         phone: formData.phone,
@@ -86,290 +246,427 @@ export default function ProjectDetailPage() {
   };
 
   if (project === undefined) {
-    return <div className="wrap" style={{ padding: '64px 32px' }}>Loading project details…</div>;
+    return (
+      <div className={`${body.variable}`} style={{ padding: '96px 32px', textAlign: 'center', color: C.inkSoft, fontFamily: 'var(--font-body)' }}>
+        Loading project details…
+      </div>
+    );
   }
 
   if (!project) {
     return (
-      <div className="wrap detail-notfound" style={{ padding: '64px 32px' }}>
-        <h1>We couldn&apos;t find that project</h1>
-        <p>It may have been unpublished or the link is out of date.</p>
-        <Link href="/#projects" className="btn btn-solid" style={{ marginTop: 16, display: 'inline-block' }}>
+      <div className={`${display.variable} ${body.variable}`} style={{ padding: '96px 32px', textAlign: 'center', fontFamily: 'var(--font-body)' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 600 }}>We couldn&apos;t find that project</h1>
+        <p style={{ color: C.inkSoft, marginTop: 10 }}>It may have been unpublished, or the link is out of date.</p>
+        <Link
+          href="/#projects"
+          style={{ marginTop: 24, display: 'inline-block', background: C.pine, color: '#fff', padding: '12px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 600 }}
+        >
           Browse active projects
         </Link>
       </div>
     );
   }
 
-  const mainImage = project.featured_image || project.imagesUrl?.[0] || '/placeholder.svg';
+  const emiMonthly = computeEmi(loanLakhs * 1e5, interestRate, tenureYears);
+  const totalPayment = emiMonthly * tenureYears * 12;
+  const totalInterest = totalPayment - loanLakhs * 1e5;
+
+  const statusLabel = project.constructionStatus?.replace(/_/g, ' ') || (project.rera_id ? 'RERA registered' : 'New launch');
+  const possessionLabel = project.possessionDate
+    ? new Date(project.possessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+    : null;
+  const locationLabel = project.locality || project.location || project.city || 'Pune';
 
   return (
-    <div style={{ paddingBottom: '90px' }}>
-      <div className="wrap" style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto' }}>
-        {/* Navigation back link */}
-        <Link href="/" style={{ color: '#888', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>
+    <div className={`${display.variable} ${body.variable}`} style={{ fontFamily: 'var(--font-body)', color: C.ink, background: C.paper, paddingBottom: 96 }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '28px 24px 0' }}>
+        <Link href="/" style={{ color: C.inkSoft, textDecoration: 'none', fontSize: 13.5, fontWeight: 500 }}>
           ← Back to all projects
         </Link>
 
-        {/* Header Title Section */}
-        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <h1 style={{ fontSize: '32px', fontWeight: 700, margin: 0 }}>{project.title}</h1>
-            <p style={{ color: '#666', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-              {ICONS.pin} {project.locality || project.location || project.city}
-            </p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '26px', fontWeight: 800, color: '#10b981' }}>
-              {project.price || 'Price on Request'}
-            </div>
-            {project.rera_id && (
-              <span style={{ fontSize: '12px', background: '#ecfdf5', color: '#047857', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
-                MahaRERA: {project.rera_id}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Hero Image & Primary Action CTA */}
-        <div style={{ position: 'relative', marginTop: 24, borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-          <img
-            src={mainImage}
-            alt={project.title}
-            style={{ width: '100%', maxHeight: '480px', objectFit: 'cover', display: 'block' }}
-          />
-          <div style={{ position: 'absolute', bottom: 16, right: 16, display: 'flex', gap: 12 }}>
-            <button
-              onClick={() => openLeadModal('Download Official Brochure')}
-              style={{
-                backgroundColor: '#111',
-                color: '#fff',
-                padding: '12px 20px',
-                borderRadius: '8px',
-                border: 'none',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-              }}
-            >
-              {ICONS.download} Download Brochure
-            </button>
-          </div>
-        </div>
-
-        {/* Key Overview Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginTop: 32 }}>
-          <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
-            <span style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Property Type</span>
-            <div style={{ fontSize: '16px', fontWeight: 600, marginTop: 4 }}>{project.propertyType || 'Residential Flat'}</div>
-          </div>
-          <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
-            <span style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</span>
-            <div style={{ fontSize: '16px', fontWeight: 600, marginTop: 4 }}>
-              {project.constructionStatus?.replace(/_/g, ' ') || (project.rera_id ? 'MahaRERA Verified' : 'New Launch')}
-            </div>
-          </div>
-          <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
-            <span style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Possession Date</span>
-            <div style={{ fontSize: '16px', fontWeight: 600, marginTop: 4 }}>
-              {project.possessionDate ? new Date(project.possessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'On Request'}
-            </div>
-          </div>
-          <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
-            <span style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Location</span>
-            <div style={{ fontSize: '16px', fontWeight: 600, marginTop: 4 }}>{project.locality || project.city || 'Pune'}</div>
-          </div>
-        </div>
-
-        {/* Project Description */}
-        {project.description && (
-          <div style={{ marginTop: 40 }}>
-            <h2 style={{ fontSize: '22px', fontWeight: 700 }}>About {project.title}</h2>
-            <p style={{ marginTop: 12, lineHeight: 1.7, color: '#374151', fontSize: '15px', whiteSpace: 'pre-line' }}>
-              {project.description}
-            </p>
-          </div>
-        )}
-
-        {/* Brochure Download Banner CTA */}
-        <div style={{ marginTop: 40, background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)', color: '#fff', padding: '28px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
-          <div>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Interested in {project.title}?</h3>
-            <p style={{ margin: '6px 0 0', color: '#9ca3af', fontSize: '14px' }}>Get complete floor plans, pricing sheets, and site layout directly on WhatsApp.</p>
-          </div>
+        {/* Status strip */}
+        <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <Pill icon={ICONS.shield} tone="pine">
+            {project.rera_id ? 'RERA registered' : statusLabel}
+          </Pill>
+          {possessionLabel && (
+            <Pill icon={ICONS.clock} tone="neutral">
+              Possession by {possessionLabel}
+            </Pill>
+          )}
           <button
-            onClick={() => openLeadModal('Request Detailed Price Sheet')}
-            style={{ backgroundColor: '#10b981', color: '#fff', padding: '12px 24px', borderRadius: '8px', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+            onClick={handleShare}
+            style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: `1px solid ${C.hairline}`, borderRadius: 20, padding: '7px 14px', fontSize: 13, fontWeight: 500, color: C.ink, cursor: 'pointer' }}
           >
-            Get Instant Details
+            {ICONS.share} {shareCopied ? 'Link copied' : 'Share'}
           </button>
         </div>
 
-        {/* Unit Configurations & Pricing */}
-        {project.unit_pricing && project.unit_pricing.length > 0 && (
-          <div style={{ marginTop: 40 }}>
-            <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Configurations & Price List</h2>
-            <div style={{ marginTop: 16, border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Unit Type</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Carpet Area</th>
-                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Price</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {project.unit_pricing.map((unit: any, index: number) => (
-                    <tr key={index} style={{ borderBottom: index < project.unit_pricing!.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
-                      <td style={{ padding: '14px 16px', fontWeight: 600 }}>{unit.unit_type || 'N/A'}</td>
-                      <td style={{ padding: '14px 16px', color: '#4b5563' }}>{unit.carpet_area || 'On Request'}</td>
-                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#10b981' }}>{unit.price || 'Price on Request'}</td>
-                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                        <button
-                          onClick={() => openLeadModal(`Inquire: ${unit.unit_type}`)}
-                          style={{ background: 'none', border: '1px solid #10b981', color: '#10b981', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                        >
-                          Unlock Price
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        {/* Title block */}
+        <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 6 }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 'clamp(28px, 4vw, 42px)', margin: 0, lineHeight: 1.08 }}>
+            {project.title}
+          </h1>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', color: C.inkSoft, fontSize: 15 }}>
+            {(project as any).developer && <span>By {(project as any).developer}</span>}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>{ICONS.pin} {locationLabel}</span>
           </div>
-        )}
-
-        {/* Amenities Section */}
-        {project.amenities && project.amenities.length > 0 && (
-          <div style={{ marginTop: 40 }}>
-            <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Amenities & Features</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginTop: 16 }}>
-              {project.amenities.map((item: string, index: number) => (
-                <div
-                  key={index}
-                  style={{
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    padding: '12px 16px',
-                    borderRadius: '10px',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                >
-                  <span style={{ color: '#10b981' }}>✓</span> {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* Sticky Bottom Bar for Mobile & Desktop CTA */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#ffffff', borderTop: '1px solid #e5e7eb', padding: '12px 24px', zIndex: 40, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)' }}>
-        <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Main two-column layout */}
+      <div
+        style={{
+          maxWidth: 1180,
+          margin: '28px auto 0',
+          padding: '0 24px',
+          display: 'grid',
+          gridTemplateColumns: '1fr',
+          gap: 40,
+        }}
+        className="pd-layout"
+      >
+        <style>{`
+          .pd-layout { grid-template-columns: 1fr; }
+          @media (min-width: 960px) {
+            .pd-layout { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
+          }
+          .pd-rail { position: static; }
+          @media (min-width: 960px) {
+            .pd-rail { position: sticky; top: 24px; }
+          }
+        `}</style>
+
+        {/* -------- LEFT COLUMN -------- */}
+        <div style={{ minWidth: 0 }}>
+          {/* Gallery */}
           <div>
-            <div style={{ fontSize: '12px', color: '#666' }}>Starting Price</div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#111' }}>{project.price || 'Price on Request'}</div>
+            <div style={{ borderRadius: 4, overflow: 'hidden', background: '#eee' }}>
+              <img src={images[activeImage]} alt={project.title} style={{ width: '100%', maxHeight: 460, objectFit: 'cover', display: 'block' }} />
+            </div>
+            {images.length > 1 && (
+              <div style={{ display: 'flex', gap: 10, marginTop: 10, overflowX: 'auto' }}>
+                {images.map((img, i) => (
+                  <button
+                    key={img + i}
+                    onClick={() => setActiveImage(i)}
+                    style={{
+                      flex: '0 0 auto',
+                      padding: 0,
+                      border: i === activeImage ? `2px solid ${C.pine}` : `2px solid transparent`,
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      background: 'none',
+                    }}
+                  >
+                    <img src={img} alt="" style={{ width: 84, height: 60, objectFit: 'cover', borderRadius: 2, display: 'block' }} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button
-              onClick={() => openLeadModal('Schedule Site Visit')}
-              style={{ backgroundColor: '#ffffff', color: '#111827', border: '1px solid #d1d5db', padding: '10px 18px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
-            >
-              Schedule Site Visit
+
+          {/* Description */}
+          {project.description && (
+            <Section title={`About ${project.title}`}>
+              <p style={{ lineHeight: 1.75, color: '#3A4340', fontSize: 15.5, whiteSpace: 'pre-line', margin: 0 }}>{project.description}</p>
+            </Section>
+          )}
+
+          {/* Highlights — derived from real project data */}
+          {highlights.length > 0 && (
+            <Section title="Highlights">
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+                {highlights.map((h, i) => (
+                  <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 15, lineHeight: 1.6 }}>
+                    <span style={{ marginTop: 3, width: 18, height: 18, borderRadius: '50%', background: C.pineTint, color: C.pine, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
+                      {ICONS.check}
+                    </span>
+                    {h}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {/* Pricing table */}
+          {unitGroups.length > 0 && (
+            <Section title="Configurations & price list">
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                {unitGroups.map((g) => (
+                  <button
+                    key={g.type}
+                    onClick={() => setActiveUnitType(g.type)}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: 20,
+                      border: `1px solid ${g.type === activeUnitType ? C.pine : C.hairline}`,
+                      background: g.type === activeUnitType ? C.pine : 'transparent',
+                      color: g.type === activeUnitType ? '#fff' : C.ink,
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {g.type}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ border: `1px solid ${C.hairline}`, borderRadius: 6, overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                  <thead>
+                    <tr style={{ background: '#F4F1E9', borderBottom: `1px solid ${C.hairline}` }}>
+                      <th style={th}>Carpet area</th>
+                      <th style={th}>Price</th>
+                      <th style={{ ...th, textAlign: 'right' as const }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(activeGroup?.units || []).map((unit: any, index: number) => (
+                      <tr key={index} style={{ borderBottom: index < activeGroup.units.length - 1 ? `1px solid ${C.hairline}` : 'none' }}>
+                        <td style={td}>{unit.carpet_area || 'On request'}</td>
+                        <td style={{ ...td, fontWeight: 700, color: C.gold }}>{unit.price || 'Price on request'}</td>
+                        <td style={{ ...td, textAlign: 'right' as const }}>
+                          <button onClick={() => openLeadModal(`Enquire: ${activeGroup.type} · ${unit.carpet_area || ''}`)} style={smallOutlineBtn}>
+                            Enquire now
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Section>
+          )}
+
+          {/* Property details grid */}
+          <Section title="Property details">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '18px 24px' }}>
+              <Fact label="Property type" value={project.propertyType || 'Residential'} />
+              <Fact label="Status" value={statusLabel} />
+              {possessionLabel && <Fact label="Possession by" value={possessionLabel} />}
+              <Fact label="Configurations" value={unitGroups.map((g) => g.type).join(', ') || '—'} />
+              {(project as any).totalUnits && <Fact label="Total units" value={`${(project as any).totalUnits} units`} />}
+              <Fact label="Location" value={locationLabel} />
+              {project.rera_id && <Fact label="RERA ID" value={project.rera_id} />}
+            </div>
+          </Section>
+
+          {/* Amenities */}
+          {project.amenities && project.amenities.length > 0 && (
+            <Section title="Amenities">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 10 }}>
+                {project.amenities.map((item: string, index: number) => (
+                  <div key={index} style={{ border: `1px solid ${C.hairline}`, borderRadius: 6, padding: '10px 14px', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: C.pine }}>{ICONS.check}</span> {item}
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* Developer legacy */}
+          {(project as any).developer && (
+            <Section title="Developer">
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', border: `1px solid ${C.hairline}`, borderRadius: 6, padding: 20 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 17 }}>{(project as any).developer}</div>
+                  <div style={{ color: C.inkSoft, fontSize: 14, marginTop: 4 }}>Developer of {project.title}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 32, marginLeft: 'auto' }}>
+                  {(project as any).developerYears && <Stat value={`${(project as any).developerYears}+`} label="Years of experience" />}
+                  {(project as any).developerProjectCount && <Stat value={`${(project as any).developerProjectCount}+`} label="Projects delivered" />}
+                </div>
+              </div>
+            </Section>
+          )}
+
+          {/* Location */}
+          <Section title="Location & connectivity">
+            <p style={{ color: C.inkSoft, fontSize: 14.5, margin: '0 0 14px' }}>{locationLabel}</p>
+            {(project as any).latitude && (project as any).longitude ? (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${(project as any).latitude},${(project as any).longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.pine, color: '#fff', padding: '10px 18px', borderRadius: 6, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+              >
+                Get directions {ICONS.chevronRight}
+              </a>
+            ) : (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.title + ' ' + locationLabel)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.pine, color: '#fff', padding: '10px 18px', borderRadius: 6, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}
+              >
+                View on map {ICONS.chevronRight}
+              </a>
+            )}
+          </Section>
+
+          {/* EMI calculator */}
+          <Section title="EMI calculator">
+            <div style={{ border: `1px solid ${C.hairline}`, borderRadius: 6, padding: 24, display: 'grid', gap: 20 }}>
+              <SliderField label="Loan amount" value={loanLakhs} min={5} max={500} step={1} suffix=" L" onChange={setLoanLakhs} />
+              <SliderField label="Interest rate" value={interestRate} min={6} max={14} step={0.1} suffix="%" onChange={setInterestRate} />
+              <SliderField label="Tenure" value={tenureYears} min={1} max={30} step={1} suffix=" yrs" onChange={setTenureYears} />
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, paddingTop: 8, borderTop: `1px solid ${C.hairline}` }}>
+                <div>
+                  <div style={{ fontSize: 12.5, color: C.inkSoft }}>Monthly EMI</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: C.pine, fontFamily: 'var(--font-display)' }}>{formatRupees(emiMonthly)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12.5, color: C.inkSoft }}>Total interest</div>
+                  <div style={{ fontSize: 17, fontWeight: 600 }}>{formatRupees(totalInterest)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12.5, color: C.inkSoft }}>Total payment</div>
+                  <div style={{ fontSize: 17, fontWeight: 600 }}>{formatRupees(totalPayment)}</div>
+                </div>
+              </div>
+              <p style={{ fontSize: 12, color: C.inkSoft, margin: 0 }}>Indicative figures for planning purposes only — actual EMI depends on your lender's terms.</p>
+            </div>
+          </Section>
+        </div>
+
+        {/* -------- RIGHT RAIL -------- */}
+        <div className="pd-rail">
+          <div style={{ background: C.paperRaised, border: `1px solid ${C.hairline}`, borderRadius: 8, padding: 22, boxShadow: '0 8px 24px rgba(27,36,32,0.06)' }}>
+            {project.rera_id && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, marginBottom: 14, borderBottom: `1px solid ${C.hairline}` }}>
+                <div>
+                  <div style={{ fontSize: 11.5, color: C.inkSoft }}>MahaRERA</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{project.rera_id}</div>
+                </div>
+                <a href="https://maharera.mahaonline.gov.in" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12.5, color: C.pine, fontWeight: 600, textDecoration: 'none' }}>
+                  Verify →
+                </a>
+              </div>
+            )}
+
+            <div style={{ fontSize: 12.5, color: C.inkSoft, marginBottom: 2 }}>{priceRange ? 'Price range' : 'Price'}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 600, color: C.ink }}>
+              {priceRange ? `${formatRupees(priceRange.min)} – ${formatRupees(priceRange.max)}` : project.price || 'Price on request'}
+            </div>
+
+            {unitGroups.length > 0 && (
+              <>
+                <div style={{ display: 'flex', gap: 6, marginTop: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+                  {unitGroups.map((g) => (
+                    <button
+                      key={g.type}
+                      onClick={() => setActiveUnitType(g.type)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 16,
+                        border: `1px solid ${g.type === activeUnitType ? C.pine : C.hairline}`,
+                        background: g.type === activeUnitType ? C.pineTint : 'transparent',
+                        color: g.type === activeUnitType ? C.pine : C.ink,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {g.type}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  {(activeGroup?.units || []).map((u: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, padding: '6px 0', borderBottom: i < activeGroup.units.length - 1 ? `1px dashed ${C.hairline}` : 'none' }}>
+                      <span style={{ color: C.inkSoft }}>{u.carpet_area || 'On request'}</span>
+                      <span style={{ fontWeight: 700, color: C.gold }}>{u.price || 'On request'}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div style={{ display: 'grid', gap: 10, marginTop: 20 }}>
+              <button onClick={() => openLeadModal('Download Official Brochure')} style={primaryBtn}>
+                {ICONS.download} Download brochure
+              </button>
+              <button onClick={() => openLeadModal('Schedule Site Visit')} style={secondaryBtn}>
+                Schedule a site visit
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sticky bottom bar (mobile-first, visible on all sizes) */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: C.paperRaised, borderTop: `1px solid ${C.hairline}`, padding: '12px 24px', zIndex: 40 }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 11.5, color: C.inkSoft }}>Starting price</div>
+            <div style={{ fontSize: 17, fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+              {priceRange ? formatRupees(priceRange.min) : project.price || 'On request'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => openLeadModal('Schedule Site Visit')} style={{ ...secondaryBtn, padding: '10px 16px' }}>
+              Site visit
             </button>
-            <button
-              onClick={() => openLeadModal('Download Official Brochure')}
-              style={{ backgroundColor: '#10b981', color: '#ffffff', border: 'none', padding: '10px 18px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-            >
-              {ICONS.download} Download Brochure
+            <button onClick={() => openLeadModal('Download Official Brochure')} style={{ ...primaryBtn, padding: '10px 16px' }}>
+              {ICONS.download} Brochure
             </button>
           </div>
         </div>
       </div>
 
-      {/* Popup Modal Lead Form */}
+      {/* Lead form modal */}
       {isModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '28px', maxWidth: '420px', width: '100%', position: 'relative', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
-            <button
-              onClick={() => setIsModalOpen(false)}
-              style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}
-            >
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(20,24,22,0.55)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ backgroundColor: C.paperRaised, borderRadius: 10, padding: 28, maxWidth: 420, width: '100%', position: 'relative' }}>
+            <button onClick={() => setIsModalOpen(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', cursor: 'pointer', color: C.inkSoft }}>
               {ICONS.close}
             </button>
 
             {isSubmitted ? (
-              <div style={{ textAlign: 'center', padding: '24px 8px' }}>
-                <div style={{ fontSize: '48px', marginBottom: 12 }}>✅</div>
-                <h3 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Request Submitted!</h3>
-                <p style={{ color: '#6b7280', marginTop: 8, fontSize: '14px' }}>
-                  Thank you! Our property specialist will share the details and brochure with you shortly.
-                </p>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  style={{ marginTop: 20, backgroundColor: '#111827', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', width: '100%' }}
-                >
+              <div style={{ textAlign: 'center', padding: '20px 6px' }}>
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: C.pineTint, color: C.pine, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </div>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, margin: 0 }}>Request submitted</h3>
+                <p style={{ color: C.inkSoft, marginTop: 8, fontSize: 14 }}>Thanks — our property specialist will share the details shortly.</p>
+                <button onClick={() => setIsModalOpen(false)} style={{ ...primaryBtn, width: '100%', marginTop: 18, justifyContent: 'center' }}>
                   Close
                 </button>
               </div>
             ) : (
               <>
-                <h3 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>{modalTitle}</h3>
-                <p style={{ color: '#6b7280', fontSize: '14px', marginTop: 6 }}>
-                  Enter your details to receive full project floor plans and price list.
-                </p>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, margin: 0 }}>{modalTitle}</h3>
+                <p style={{ color: C.inkSoft, fontSize: 13.5, marginTop: 6 }}>Share your details and we'll send the full floor plans and price list.</p>
 
                 <form onSubmit={handleFormSubmit} style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Full Name</label>
+                    <label style={labelStyle}>Full name</label>
                     <input
                       type="text"
                       required
                       placeholder="Enter your name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                      style={inputStyle}
                     />
                   </div>
-
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: 4 }}>Phone Number</label>
+                    <label style={labelStyle}>Phone number</label>
                     <input
                       type="tel"
                       required
                       placeholder="+91 98765 43210"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', boxSizing: 'border-box' }}
+                      style={inputStyle}
                     />
                   </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    style={{
-                      marginTop: 8,
-                      backgroundColor: '#10b981',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '12px',
-                      borderRadius: '8px',
-                      fontWeight: 700,
-                      fontSize: '15px',
-                      cursor: 'pointer',
-                      opacity: isSubmitting ? 0.7 : 1,
-                    }}
-                  >
-                    {isSubmitting ? 'Submitting…' : 'Submit & Download'}
+                  <button type="submit" disabled={isSubmitting} style={{ ...primaryBtn, justifyContent: 'center', marginTop: 6, opacity: isSubmitting ? 0.7 : 1 }}>
+                    {isSubmitting ? 'Submitting…' : 'Submit & download'}
                   </button>
                 </form>
               </>
@@ -380,3 +677,140 @@ export default function ProjectDetailPage() {
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Presentational subcomponents & style objects
+// ---------------------------------------------------------------------------
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginTop: 44 }}>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, margin: '0 0 16px' }}>{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function Pill({ children, icon, tone }: { children: React.ReactNode; icon?: React.ReactNode; tone: 'pine' | 'neutral' }) {
+  const styles =
+    tone === 'pine'
+      ? { background: C.pineTint, color: C.pineDeep, border: `1px solid transparent` }
+      : { background: 'transparent', color: C.inkSoft, border: `1px solid ${C.hairline}` };
+  return (
+    <span style={{ ...styles, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 20, fontSize: 12.5, fontWeight: 600 }}>
+      {icon} {children}
+    </span>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: C.inkSoft, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 15, fontWeight: 600 }}>{value}</div>
+    </div>
+  );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, color: C.pine }}>{value}</div>
+      <div style={{ fontSize: 12.5, color: C.inkSoft }}>{label}</div>
+    </div>
+  );
+}
+
+function SliderField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  suffix,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  suffix: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 8 }}>
+        <span style={{ color: C.inkSoft }}>{label}</span>
+        <span style={{ fontWeight: 700 }}>
+          {value}
+          {suffix}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        style={{ width: '100%', accentColor: C.pine }}
+      />
+    </div>
+  );
+}
+
+const th: React.CSSProperties = { padding: '12px 16px', fontWeight: 600, textAlign: 'left', fontSize: 12.5, color: C.inkSoft };
+const td: React.CSSProperties = { padding: '13px 16px' };
+
+const primaryBtn: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+  backgroundColor: C.pine,
+  color: '#fff',
+  border: 'none',
+  padding: '12px 18px',
+  borderRadius: 6,
+  fontWeight: 700,
+  fontSize: 14,
+  cursor: 'pointer',
+};
+
+const secondaryBtn: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+  backgroundColor: 'transparent',
+  color: C.ink,
+  border: `1px solid ${C.hairlineStrong}`,
+  padding: '12px 18px',
+  borderRadius: 6,
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: 'pointer',
+};
+
+const smallOutlineBtn: React.CSSProperties = {
+  background: 'none',
+  border: `1px solid ${C.pine}`,
+  color: C.pine,
+  padding: '6px 12px',
+  borderRadius: 6,
+  fontSize: 12,
+  fontWeight: 600,
+  cursor: 'pointer',
+};
+
+const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: '#3A4340', marginBottom: 4 };
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  borderRadius: 6,
+  border: `1px solid ${C.hairlineStrong}`,
+  fontSize: 14,
+  boxSizing: 'border-box',
+};

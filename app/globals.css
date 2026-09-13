@@ -698,3 +698,223 @@ header.is-scrolled { box-shadow: 0 1px 0 var(--line); }
   .mobile-cta-primary { background: var(--gradient-brand); border-color: transparent; color: #fff; flex: 1.4; }
   .pdetail-grid { padding-bottom: 90px; }
 }
+
+/* =========================================================================
+   ADVANCED RESPONSIVE LAYER
+   Fills the gaps between the 920/780/640 breakpoints, adds a real tablet
+   step, restores proper touch ergonomics, handles notches/safe areas,
+   and upgrades a few components (table, cards, hero) with progressive
+   enhancements that degrade gracefully on older browsers.
+   ========================================================================= */
+
+/* ---------- Fluid type & spacing scale ---------- */
+:root {
+  --space-1: clamp(0.5rem, 0.45rem + 0.25vw, 0.625rem);
+  --space-2: clamp(0.875rem, 0.8rem + 0.35vw, 1.125rem);
+  --space-3: clamp(1.5rem, 1.3rem + 1vw, 2.25rem);
+  --space-4: clamp(2.5rem, 2rem + 2.5vw, 5.5rem);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+}
+
+section { padding: var(--space-4) 0; }
+.section-head { margin-bottom: var(--space-3); }
+.hero, .lead-section { padding-top: var(--space-4); }
+
+/* Respect notches on edge-to-edge fixed/sticky chrome */
+header { padding-top: var(--safe-t); }
+.wrap { padding-left: max(32px, var(--safe-l) + 16px); padding-right: max(32px, var(--safe-r) + 16px); }
+.mobile-cta-bar { padding-bottom: calc(10px + var(--safe-b)); }
+
+/* ---------- New: tablet step (1024px) — most grids jump straight from
+   4-up to 1-up today; give them a 2-up middle step so content doesn't
+   look sparse or cramped on iPads and small laptops. ---------- */
+@media (max-width: 1024px) {
+  .wrap { padding-left: 24px; padding-right: 24px; }
+  .feature-strip,
+  .category-grid,
+  .stat-grid,
+  .collections-grid,
+  .testimonial-grid,
+  .guide-grid,
+  .process-grid,
+  .key-grid { grid-template-columns: repeat(2, 1fr); }
+  .project-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .pdetail-grid { gap: 32px; }
+}
+
+@media (max-width: 640px) {
+  .feature-strip,
+  .category-grid,
+  .stat-grid,
+  .testimonial-grid,
+  .guide-grid,
+  .process-grid,
+  .key-grid { grid-template-columns: 1fr; }
+  .collections-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 420px) {
+  .collections-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- Touch ergonomics: 44x44 minimum hit areas on touch/coarse
+   pointers, without inflating the desktop mouse UI. ---------- */
+@media (pointer: coarse) {
+  .btn, .chip, .type-tab, .finder-clear, .nav-burger,
+  .search-tab, .pgallery-thumb, .mobile-cta-btn, .faq-q,
+  .enquiry-alt a, .category-tile, .amenity-item {
+    min-height: 44px;
+  }
+  .btn, .chip, .type-tab { padding-top: 12px; padding-bottom: 12px; }
+  .finder select, .lead-form input, .lead-form select, .lead-form textarea {
+    min-height: 46px;
+  }
+  nav a, .main-nav a { padding: 8px 0; display: inline-block; }
+}
+
+/* Hover effects only where a real hover exists, so tap-and-hold on touch
+   screens doesn't get stuck showing a "hover" state. */
+@media (hover: hover) and (pointer: fine) {
+  .pcard:hover, .category-tile:hover, .feature-badge:hover,
+  .gcard:hover, .collection-tile:hover, .stop:hover { cursor: pointer; }
+}
+@media (hover: none) {
+  .pcard:hover, .category-tile:hover, .feature-badge:hover,
+  .gcard:hover, .collection-tile:hover, .stop:hover,
+  .pcard-img:hover img { transform: none; box-shadow: none; }
+}
+
+/* ---------- Header / nav refinements on small screens ---------- */
+@media (max-width: 780px) {
+  .nav-inner { padding: 14px 0; }
+  .logo { font-size: 21px; }
+  .nav-actions { gap: 8px; }
+}
+@media (max-width: 360px) {
+  .logo { font-size: 19px; }
+  .btn { padding: 12px 18px; font-size: 13px; }
+}
+
+/* ---------- Hero: tighten up further for small phones & landscape ---------- */
+@media (max-width: 480px) {
+  .hero-v2 { min-height: 0; }
+  .hero-content { padding: 56px 0 40px; }
+  .hero-trust { gap: 14px; font-size: 11.5px; }
+  .search-card { border-radius: 16px; margin-top: 28px; }
+  .search-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .search-note { padding: 10px 18px 0; }
+}
+@media (max-width: 780px) and (orientation: landscape) {
+  .hero-content { padding: 40px 0 32px; }
+  .hero-v2 { min-height: 0; }
+}
+
+/* ---------- Project cards: switch to a horizontal layout on very
+   narrow widths so image + text share the row instead of stacking
+   into an overly tall card; uses a container query with a flex
+   fallback for browsers that don't support it. ---------- */
+@supports (container-type: inline-size) {
+  .project-grid { container-type: inline-size; container-name: projects; }
+}
+@media (max-width: 480px) {
+  .pcard-img { height: 150px; }
+  .pcard-body { padding: 16px; gap: 10px; }
+  .pcard h3 { font-size: 17px; }
+}
+
+/* ---------- Micro-market table: collapse into labeled stacked rows
+   below 560px. Add a data-label="Column name" attribute to each <td>
+   in markup to enable the label; falls back to the scrollable table
+   (already in place) if data-label is absent. ---------- */
+@media (max-width: 560px) {
+  .table-wrap { border: none; }
+  table, thead, tbody, tr, th, td { display: block; width: 100%; min-width: 0; }
+  thead { position: absolute; left: -9999px; top: -9999px; }
+  tbody tr {
+    background: var(--stone-2); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 6px 4px; margin-bottom: 12px;
+  }
+  tbody tr:last-child { margin-bottom: 0; }
+  td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 14px; white-space: normal; }
+  td::before { content: attr(data-label); font-size: 11.5px; font-weight: 700; color: var(--ink-soft); flex: 0 0 auto; }
+  td.loc-name { border-bottom: 1px solid var(--line); }
+}
+
+/* ---------- Project detail: reorder so the enquiry form appears right
+   after the price on mobile instead of at the very bottom of the page. ---------- */
+@media (max-width: 960px) {
+  .pdetail-grid { display: flex; flex-direction: column; padding: 28px 16px calc(90px + var(--safe-b)); }
+  .pdetail-sidebar { order: -1; }
+  .pdetail-header { padding: 24px 0 20px; }
+  .pdetail-price { align-items: flex-start; width: 100%; }
+}
+
+/* ---------- Lead / enquiry forms: full-width, larger fields on phones ---------- */
+@media (max-width: 480px) {
+  .lead-form-card, .enquiry-card { padding: 22px; border-radius: 16px; }
+  .lead-form-row { gap: 12px; }
+  .lead-form input, .lead-form select, .lead-form textarea { padding: 13px 14px; font-size: 16px; }
+}
+/* font-size:16px on inputs above prevents iOS Safari's automatic zoom-on-focus */
+
+/* ---------- Corridor rail: show a subtle edge fade + snap-scroll so the
+   horizontally scrolling stops feel intentional on touch. ---------- */
+.corridor-rail { scroll-snap-type: x proximity; }
+.stop { scroll-snap-align: start; }
+@media (max-width: 640px) {
+  .corridor-section { position: relative; }
+  .corridor-rail { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%); }
+  .stop { width: 220px; padding: 20px; }
+}
+
+/* ---------- Gallery: swipeable snap carousel on phones ---------- */
+@media (max-width: 640px) {
+  .pgallery-main { scroll-snap-align: start; }
+  .pgallery-thumb { width: 68px; height: 48px; }
+}
+
+/* ---------- Accessible, once-only motion: replace scattered hover
+   transforms with a single orchestrated hero reveal, respecting
+   reduced-motion users. ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-content > * { animation: rise-in .6s cubic-bezier(.2,.8,.2,1) both; }
+  .hero-content .eyebrow { animation-delay: 0s; }
+  .hero-content .hero-title-light { animation-delay: .08s; }
+  .hero-content .lede-light { animation-delay: .16s; }
+  .hero-content .search-card { animation-delay: .24s; }
+  .hero-content .hero-trust { animation-delay: .3s; }
+}
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .pcard-skeleton, .skeleton-hero { animation: none; background: var(--stone-2); }
+}
+
+/* ---------- Dark mode (system preference) ---------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --stone: #14162b;
+    --stone-2: #1b1d38;
+    --ink: #f4f5fb;
+    --ink-soft: #9a9db3;
+    --line: rgba(244, 245, 251, 0.1);
+    --shadow-soft: 0 16px 40px rgba(0, 0, 0, 0.4);
+  }
+  body { background: var(--basalt); }
+  header { background: rgba(18, 18, 43, 0.86); }
+  .pcard, .gcard, .tcard, .lead-form-card, .enquiry-card, .search-card,
+  .key-item, .amenity-item, .faq-item, .mobile-cta-bar, .mobile-cta-btn,
+  .finder-bar, .btn { background: var(--stone-2); border-color: var(--line); }
+  .btn-solid { background: var(--gradient-brand); }
+  .lead-form input, .lead-form select, .lead-form textarea { background: var(--basalt); }
+  ::selection { background: var(--gold); color: #14162b; }
+}
+
+/* ---------- Print: strip chrome, keep only readable content ---------- */
+@media print {
+  header, footer, .mobile-cta-bar, .hero-v2, .lead-section, .btn, .nav-burger { display: none; }
+  body { background: #fff; color: #000; }
+  section { padding: 20px 0; }
+}

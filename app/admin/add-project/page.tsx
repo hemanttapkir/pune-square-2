@@ -272,3 +272,15 @@ export default function AddProjectPage() {
     </div>
   );
 }
+async function uploadReel(projectId: string, file: File) {
+  const path = `${projectId}/${Date.now()}-${file.name}`;
+  const { error: uploadError } = await supabase.storage.from('reels').upload(path, file);
+  if (uploadError) throw uploadError;
+
+  const { data } = supabase.storage.from('reels').getPublicUrl(path);
+
+  const { error: insertError } = await supabase
+    .from('project_reels')
+    .insert({ project_id: projectId, url: data.publicUrl });
+  if (insertError) throw insertError;
+}

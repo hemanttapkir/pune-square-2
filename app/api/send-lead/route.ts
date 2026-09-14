@@ -1,16 +1,21 @@
-// app/api/send-lead/route.ts
 import { NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER, // e.g., hemanttapkir7@gmail.com
+    pass: process.env.EMAIL_PASS, // Gmail 16-character "App Password"
+  },
+});
 
 export async function POST(request: Request) {
   try {
     const { name, phone, project_title, notes } = await request.json();
 
-    const data = await resend.emails.send({
-      from: 'PuneSquare Leads <onboarding@resend.dev>', // Default Resend test sender
-      to: [process.env.MY_LEAD_EMAIL || 'your_actual_gmail@gmail.com'],
+    await transporter.sendMail({
+      from: `"PuneSquare Leads" <${process.env.EMAIL_USER}>`,
+      to: process.env.MY_LEAD_EMAIL || 'hemanttapkir7@gmail.com',
       subject: `🚨 New Lead: ${name} (${project_title || 'General Inquiry'})`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -23,7 +28,7 @@ export async function POST(request: Request) {
       `,
     });
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to send email:', error);
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });

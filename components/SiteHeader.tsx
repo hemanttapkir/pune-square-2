@@ -28,7 +28,7 @@ export default function SiteHeader() {
     <header className={scrolled || !isHome ? 'is-scrolled' : ''}>
       <div className="wrap nav-inner">
         <Link href="/" className="logo" onClick={() => setMenuOpen(false)}>
-          Pune<span>Square</span>
+          Pune<span>Assets</span>
         </Link>
 
         <nav className={`main-nav ${menuOpen ? 'open' : ''}`}>

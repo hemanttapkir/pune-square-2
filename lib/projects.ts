@@ -46,6 +46,7 @@ export interface Project {
   possessionDate?: string;
   constructionStatus?: 'under_construction' | 'ready_to_move' | 'new_launch' | string;
   createdAt?: string;
+  reels?: { url: string; title?: string; thumbnail?: string }[];
 }
 
 // Helper to format prices in Lac/Cr if min_price & max_price exist
@@ -62,7 +63,7 @@ function formatMinMaxPrice(min?: number | null, max?: number | null): string | n
 }
 
 // Maps raw Supabase row into standard Project interface
-function mapProperty(property: any, imagesUrl: string[] = []): Project {
+function mapProperty(property: any, imagesUrl: string[] = [], reelsData: { url: string; title?: string; thumbnail?: string }[] = []): Project {
   // Try calculating from unit_pricing first
   const { label: startingPrice, lakh: priceLakh } = getStartingPrice(property.unit_pricing);
   const calculatedRange = getPriceRange(property.unit_pricing);
@@ -102,6 +103,7 @@ function mapProperty(property: any, imagesUrl: string[] = []): Project {
     price: startingPrice || fallbackPrice || 'Price on Request',
     priceRange: calculatedRange || fallbackPrice,
     priceLakh: priceLakh || (property.min_price ? property.min_price / 100000 : null),
+    reels: reelsData,
   };
 }
 
@@ -137,15 +139,28 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
     .select('image_url')
     .eq('property_id', property.id);
 
+    const { data: reels } = await supabase
+    .from('property_reels')
+    .select('video_url, title, thumbnail_url, sort_order')
+    .eq('property_id', property.id)
+    .order('sort_order', { ascending: true });
+
   const imagesUrl =
     images && images.length > 0
       ? images.map((img) => img.image_url)
       : property.featured_image
       ? [property.featured_image]
       : [];
-
-  return mapProperty(property, imagesUrl);
-}
+ const reelsData =
+    reels && reels.length > 0
+      ? reels.map((r) => ({
+          url: r.video_url,
+          title: r.title ?? undefined,
+          thumbnail: r.thumbnail_url ?? undefined,
+        }))
+      : [];
+      return mapProperty(property, imagesUrl, reelsData);
+    }
 
 // Fetch similar projects in the same city
 export async function getSimilarProjects(

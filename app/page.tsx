@@ -109,7 +109,7 @@ const TESTIMONIALS = [
 
 const FAQS = [
   {
-    q: 'Is Pune Square a broker or builder?',
+    q: 'Is Pune Assets a broker or builder?',
     a: 'Neither — we\u2019re an independent, informational listing and research layer on top of Pune\u2019s residential market. When you request a shortlist, we connect you directly with the relevant developer sales teams; we don\u2019t add a brokerage layer or fee on top.',
   },
   {

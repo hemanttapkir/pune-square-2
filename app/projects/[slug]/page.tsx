@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Fraunces, Inter } from 'next/font/google';
-import { getProjectBySlug, Project } from '@/lib/projects';
+import { getProjectBySlug, getSimilarProjects, Project } from '@/lib/projects';
 import { submitInquiry } from '@/lib/inquiries';
 
 /**
@@ -12,8 +12,7 @@ import { submitInquiry } from '@/lib/inquiries';
  * ----------------
  * This page reads a few extra, optional fields off `Project` if you have them.
  * None of them are required — every section that uses them is guarded and
- * simply hides itself when the data isn't there. Add them to your Project
- * type whenever it's convenient:
+ * simply hides itself when the data isn't there.
  *
  *   developer?: string;
  *   developerYears?: number;         // years in business
@@ -21,6 +20,7 @@ import { submitInquiry } from '@/lib/inquiries';
  *   totalUnits?: number;
  *   latitude?: number;
  *   longitude?: number;
+ *   reels?: { url: string; title?: string; thumbnail?: string }[]; // direct video URLs (mp4/webm)
  */
 
 const display = Fraunces({ subsets: ['latin'], weight: ['500', '600'], style: ['normal', 'italic'], variable: '--font-display' });
@@ -91,6 +91,31 @@ const ICONS = {
       <polyline points="9 18 15 12 9 6" />
     </svg>
   ),
+  volumeOn: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+    </svg>
+  ),
+  volumeOff: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <line x1="23" y1="9" x2="17" y2="15" />
+      <line x1="17" y1="9" x2="23" y2="15" />
+    </svg>
+  ),
+  play: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+      <polygon points="6 4 20 12 6 20 6 4" />
+    </svg>
+  ),
+  pause: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="6" y="4" width="4" height="16" rx="1" />
+      <rect x="14" y="4" width="4" height="16" rx="1" />
+    </svg>
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -130,6 +155,10 @@ export default function ProjectDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [activeUnitType, setActiveUnitType] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [similarProjects, setSimilarProjects] = useState<Project[]>([]);
+
+  // Reels / Shorts viewer state
+  const [reelsViewerIndex, setReelsViewerIndex] = useState<number | null>(null);
 
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -150,11 +179,20 @@ export default function ProjectDetailPage() {
     }
   }, [params?.slug]);
 
+  // Fetch similar projects once we know the current project
+  useEffect(() => {
+    if (project) {
+      getSimilarProjects(project.id, project.city).then(setSimilarProjects);
+    }
+  }, [project]);
+
   const images: string[] = useMemo(() => {
     if (!project) return [];
     const list = [project.featured_image, ...(project.imagesUrl || [])].filter(Boolean) as string[];
     return list.length ? Array.from(new Set(list)) : ['/placeholder.png'];
   }, [project]);
+
+  const reels = (project as any)?.reels as { url: string; title?: string; thumbnail?: string }[] | undefined;
 
   const unitGroups = useMemo(() => {
     const pricing: any[] = (project as any)?.unit_pricing || [];
@@ -336,6 +374,11 @@ export default function ProjectDetailPage() {
           @media (min-width: 960px) {
             .pd-rail { position: sticky; top: 24px; }
           }
+          .pd-reels::-webkit-scrollbar { height: 6px; }
+          .pd-reels::-webkit-scrollbar-thumb { background: ${C.hairlineStrong}; border-radius: 3px; }
+          .pd-similar::-webkit-scrollbar { height: 6px; }
+          .pd-similar::-webkit-scrollbar-thumb { background: ${C.hairlineStrong}; border-radius: 3px; }
+          .pd-shorts-track::-webkit-scrollbar { display: none; }
         `}</style>
 
         {/* -------- LEFT COLUMN -------- */}
@@ -366,6 +409,13 @@ export default function ProjectDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Property reels / shorts — inline autoplay previews, tap to open fullscreen viewer */}
+          {reels && reels.length > 0 && (
+            <Section title="Property reels">
+              <ReelsRow reels={reels} onOpen={(i) => setReelsViewerIndex(i)} />
+            </Section>
+          )}
 
           {/* Description */}
           {project.description && (
@@ -598,6 +648,19 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
+      {/* -------- SIMILAR PROJECTS -------- */}
+      {similarProjects.length > 0 && (
+        <div style={{ maxWidth: 1180, margin: '56px auto 0', padding: '0 24px' }}>
+          <Section title="Similar projects you might like">
+            <div className="pd-similar" style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
+              {similarProjects.map((p) => (
+                <SimilarProjectCard key={p.id} project={p} />
+              ))}
+            </div>
+          </Section>
+        </div>
+      )}
+
       {/* Sticky bottom bar (mobile-first, visible on all sizes) */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: C.paperRaised, borderTop: `1px solid ${C.hairline}`, padding: '12px 24px', zIndex: 40 }}>
         <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -617,6 +680,11 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Reels / Shorts viewer */}
+      {reels && reels.length > 0 && reelsViewerIndex !== null && (
+        <ReelsViewer reels={reels} startIndex={reelsViewerIndex} onClose={() => setReelsViewerIndex(null)} />
+      )}
 
       {/* Lead form modal */}
       {isModalOpen && (
@@ -718,6 +786,394 @@ function Stat({ value, label }: { value: string; label: string }) {
       <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, color: C.pine }}>{value}</div>
       <div style={{ fontSize: 12.5, color: C.inkSoft }}>{label}</div>
     </div>
+  );
+}
+
+/**
+ * Horizontally scrollable row of vertical (9:16) video-card previews.
+ * Each preview autoplays muted + looped + inline as soon as it's visible
+ * (IntersectionObserver — only on-screen previews actually play). Tapping
+ * any card opens the fullscreen Reels/Shorts viewer at that index.
+ */
+function ReelsRow({
+  reels,
+  onOpen,
+}: {
+  reels: { url: string; title?: string; thumbnail?: string }[];
+  onOpen: (index: number) => void;
+}) {
+  const videoRefs = React.useRef<(HTMLVideoElement | null)[]>([]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const video = entry.target as HTMLVideoElement;
+          if (entry.isIntersecting) {
+            video.play().catch(() => {
+              /* autoplay can be blocked until user interacts with the page; safe to ignore */
+            });
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    videoRefs.current.forEach((v) => v && observer.observe(v));
+    return () => observer.disconnect();
+  }, [reels]);
+
+  return (
+    <div className="pd-reels" style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8, scrollSnapType: 'x mandatory' }}>
+      {reels.map((reel, i) => (
+        <button
+          key={reel.url + i}
+          onClick={() => onOpen(i)}
+          aria-label={`Play reel${reel.title ? `: ${reel.title}` : ''}`}
+          style={{
+            position: 'relative',
+            flex: '0 0 auto',
+            width: 200,
+            aspectRatio: '9 / 16',
+            borderRadius: 12,
+            overflow: 'hidden',
+            background: '#000',
+            scrollSnapAlign: 'start',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+          }}
+        >
+          <video
+            ref={(el) => {
+              videoRefs.current[i] = el;
+            }}
+            src={reel.url}
+            poster={reel.thumbnail}
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
+          />
+
+          {/* Play glyph hint */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'linear-gradient(180deg, rgba(0,0,0,0) 60%, rgba(0,0,0,0.45) 100%)',
+            }}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', backdropFilter: 'blur(2px)' }}>
+              <span style={{ marginLeft: 2 }}>{ICONS.play}</span>
+            </div>
+          </div>
+
+          {reel.title && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 10,
+                left: 10,
+                right: 10,
+                color: '#fff',
+                fontSize: 12.5,
+                fontWeight: 600,
+                textAlign: 'left',
+                textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+              }}
+            >
+              {reel.title}
+            </div>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Fullscreen, swipeable Reels/Shorts-style viewer.
+ * - Vertical scroll-snap: one video fills the screen at a time.
+ * - Native touch swipe / mouse-wheel scroll moves between reels — no custom
+ *   gesture code needed, the browser's scroll-snap handles it.
+ * - Only the reel currently in view plays (IntersectionObserver); everything
+ *   else is paused, so nothing plays audio/video off-screen.
+ * - Tap the video to play/pause, tap the speaker icon to toggle sound.
+ */
+function ReelsViewer({
+  reels,
+  startIndex,
+  onClose,
+}: {
+  reels: { url: string; title?: string; thumbnail?: string }[];
+  startIndex: number;
+  onClose: () => void;
+}) {
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const videoRefs = React.useRef<(HTMLVideoElement | null)[]>([]);
+  const [activeIndex, setActiveIndex] = useState(startIndex);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Lock page scroll while the viewer is open
+  useEffect(() => {
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, []);
+
+  // Jump to the tapped reel immediately (no smooth animation on open)
+  useEffect(() => {
+    const container = containerRef.current;
+    const target = videoRefs.current[startIndex]?.parentElement as HTMLElement | undefined;
+    if (container && target) {
+      container.scrollTo({ top: target.offsetTop, behavior: 'auto' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Play only the reel that's mostly in view; pause the rest
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const video = entry.target as HTMLVideoElement;
+          const idx = videoRefs.current.indexOf(video);
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+            setActiveIndex(idx);
+            setIsPaused(false);
+            video.play().catch(() => {});
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { root: container, threshold: [0, 0.6, 1] }
+    );
+
+    videoRefs.current.forEach((v) => v && observer.observe(v));
+    return () => observer.disconnect();
+  }, [reels]);
+
+  const togglePlayPause = () => {
+    const video = videoRefs.current[activeIndex];
+    if (!video) return;
+    if (video.paused) {
+      video.play().catch(() => {});
+      setIsPaused(false);
+    } else {
+      video.pause();
+      setIsPaused(true);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 60,
+        background: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        aria-label="Close reels"
+        style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          zIndex: 5,
+          width: 38,
+          height: 38,
+          borderRadius: '50%',
+          border: 'none',
+          background: 'rgba(255,255,255,0.14)',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+        }}
+      >
+        {ICONS.close}
+      </button>
+
+      {/* Mute toggle */}
+      <button
+        onClick={() => setIsMuted((m) => !m)}
+        aria-label={isMuted ? 'Unmute' : 'Mute'}
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          zIndex: 5,
+          width: 38,
+          height: 38,
+          borderRadius: '50%',
+          border: 'none',
+          background: 'rgba(255,255,255,0.14)',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+        }}
+      >
+        {isMuted ? ICONS.volumeOff : ICONS.volumeOn}
+      </button>
+
+      {/* Progress dots */}
+      {reels.length > 1 && (
+        <div style={{ position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5, zIndex: 5 }}>
+          {reels.map((_, i) => (
+            <div
+              key={i}
+              style={{
+                width: i === activeIndex ? 18 : 6,
+                height: 6,
+                borderRadius: 3,
+                background: i === activeIndex ? '#fff' : 'rgba(255,255,255,0.4)',
+                transition: 'width 0.2s ease',
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Vertical snap track */}
+      <div
+        ref={containerRef}
+        className="pd-shorts-track"
+        style={{
+          height: '100%',
+          width: '100%',
+          maxWidth: 480,
+          overflowY: 'auto',
+          scrollSnapType: 'y mandatory',
+          scrollbarWidth: 'none',
+        }}
+      >
+        {reels.map((reel, i) => (
+          <div
+            key={reel.url + i}
+            style={{
+              height: '100%',
+              width: '100%',
+              scrollSnapAlign: 'center',
+              scrollSnapStop: 'always',
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={togglePlayPause}
+          >
+            <video
+              ref={(el) => {
+                videoRefs.current[i] = el;
+              }}
+              src={reel.url}
+              poster={reel.thumbnail}
+              loop
+              muted={isMuted}
+              playsInline
+              preload="metadata"
+              style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
+            />
+
+            {i === activeIndex && isPaused && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  pointerEvents: 'none',
+                }}
+              >
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                  {ICONS.play}
+                </div>
+              </div>
+            )}
+
+            {reel.title && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 28,
+                  left: 20,
+                  right: 20,
+                  color: '#fff',
+                  fontSize: 14.5,
+                  fontWeight: 600,
+                  textShadow: '0 1px 6px rgba(0,0,0,0.7)',
+                }}
+              >
+                {reel.title}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Card used in the "Similar projects" strip at the bottom of the page. */
+function SimilarProjectCard({ project }: { project: Project }) {
+  const priceLabel = project.priceRange || project.price || 'Price on request';
+  const locationLabel = project.locality || project.location || project.city || '';
+  const image = project.featured_image || project.imagesUrl?.[0] || '/placeholder.png';
+
+  return (
+    <Link
+      href={`/projects/${project.slug}`}
+      style={{
+        flex: '0 0 auto',
+        width: 260,
+        borderRadius: 8,
+        overflow: 'hidden',
+        border: `1px solid ${C.hairline}`,
+        background: C.paperRaised,
+        textDecoration: 'none',
+        color: C.ink,
+        display: 'block',
+      }}
+    >
+      <div style={{ width: '100%', height: 150, background: '#eee' }}>
+        <img src={image} alt={project.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      </div>
+      <div style={{ padding: 14 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {project.title}
+        </div>
+        {locationLabel && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: C.inkSoft, fontSize: 12.5, marginBottom: 8 }}>
+            {ICONS.pin} {locationLabel}
+          </div>
+        )}
+        <div style={{ fontWeight: 700, fontSize: 14, color: C.gold }}>{priceLabel}</div>
+      </div>
+    </Link>
   );
 }
 

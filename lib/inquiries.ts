@@ -22,7 +22,7 @@ export async function submitInquiry(data: InquiryInput) {
   const { data: lead, error } = await supabase.from('inquiries').insert([data]);
   if (error) throw error;
 
-  // 2. Trigger Email Notification via Resend API
+
   try {
     await fetch('/api/send-lead', {
       method: 'POST',

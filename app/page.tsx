@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
 import { parsePriceToLakh } from '@/lib/price';
 import { submitInquiry } from '@/lib/inquiries';
+
+const PROJECTS_PER_PAGE = 6;
+
 function formatPrice(min?: number | null, max?: number | null): string {
   if (!min && !max) return 'Price on Request';
   const toLacsOrCr = (val: number) => {
@@ -86,47 +89,6 @@ const PROCESS_STEPS = [
   },
 ];
 
-const TESTIMONIALS = [
-  {
-    quote:
-      'We were getting calls from six different brokers for the same Kharadi project. Pune Square just gave us the price table and RERA number and let us decide.',
-    name: 'Ameya & Shalmali R.',
-    detail: 'Bought a 3BHK in Kharadi, 2025',
-  },
-  {
-    quote:
-      'The carpet-vs-built-up guide alone saved us from overpaying on a Baner listing that quoted super built-up as if it were carpet area.',
-    name: 'Rohit Deshpande',
-    detail: 'Bought a 2BHK in Baner, 2025',
-  },
-  {
-    quote:
-      'Relocating from Bengaluru, we had zero context on Pune corridors. The corridor map made the Hinjewadi vs Kharadi decision obvious in a day.',
-    name: 'Priya Nair',
-    detail: 'Relocated for work, bought in Wakad',
-  },
-];
-
-const FAQS = [
-  {
-    q: 'Is Pune Assets a broker or builder?',
-    a: 'Neither — we\u2019re an independent, informational listing and research layer on top of Pune\u2019s residential market. When you request a shortlist, we connect you directly with the relevant developer sales teams; we don\u2019t add a brokerage layer or fee on top.',
-  },
-  {
-    q: 'How current is the pricing shown on each project?',
-    a: 'Unit pricing is pulled from what developers currently list per configuration. Prices on under-construction projects move with construction stage, so always confirm the exact quote with the sales team before booking.',
-  },
-  {
-    q: 'What does a MahaRERA number actually guarantee?',
-    a: 'It confirms the project is registered with the Maharashtra Real Estate Regulatory Authority — meaning disclosed carpet areas, an escrow-linked payment structure, and a stated possession date. It does not guarantee construction quality or that the date will be met; always verify the number on the MahaRERA portal directly.',
-  },
-  {
-    q: 'Do I pay anything for the shortlist?',
-    a: 'No. The shortlist and every guide on this site are free. If you go on to book through a project we\u2019ve introduced, any brokerage is paid by the developer, standard practice across the industry.',
-  },
-];
-
-// Small inline icon set
 const ICONS = {
   building: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -172,32 +134,10 @@ const ICONS = {
       <path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4z" />
     </svg>
   ),
-  ruler: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 8h18v8H3z" />
-      <path d="M7 8v3M11 8v3M15 8v3M19 8v3" />
-    </svg>
-  ),
-  bank: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 21h18M4 21V10M20 21V10M2 10l10-6 10 6" />
-      <path d="M7 21v-6M12 21v-6M17 21v-6" />
-    </svg>
-  ),
   clock: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 3" />
-    </svg>
-  ),
-  quote: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M7.17 6C4.86 8.11 3.4 10.9 3.4 14.06c0 3.1 2 5.24 4.6 5.24 2.4 0 4.1-1.8 4.1-4.06 0-2.14-1.5-3.7-3.5-3.7-.4 0-.7.05-.9.1.4-2.1 2-3.9 4.1-4.9L10.4 4.3C9.2 4.8 8.1 5.3 7.17 6zm10.3 0c-2.3 2.1-3.77 4.9-3.77 8.06 0 3.1 2 5.24 4.6 5.24 2.4 0 4.1-1.8 4.1-4.06 0-2.14-1.5-3.7-3.5-3.7-.4 0-.7.05-.9.1.4-2.1 2-3.9 4.1-4.9L20.7 4.3c-1.2.5-2.3 1-3.23 1.7z" />
-    </svg>
-  ),
-  check: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6 9 17l-5-5" />
     </svg>
   ),
 };
@@ -264,15 +204,9 @@ export default function HomePage() {
   const [budget, setBudget] = useState('Any budget');
   const [propertyType, setPropertyType] = useState<PropertyTypeFilter>('All types');
   const [searchTab, setSearchTab] = useState<'buy' | 'rent'>('buy');
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
-
-  // Lead capture form state
-  const [leadForm, setLeadForm] = useState({
-    fullName: '', phone: '', email: '', corridor: 'Any corridor', budget: 'Any budget', message: '',
-  });
-  const [leadSubmitting, setLeadSubmitting] = useState(false);
-  const [leadSubmitted, setLeadSubmitted] = useState(false);
-  const [leadError, setLeadError] = useState<string | null>(null);
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     async function loadProjects() {
@@ -283,6 +217,11 @@ export default function HomePage() {
     }
     loadProjects();
   }, []);
+
+  // Reset pagination to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, corridor, budget, propertyType]);
 
   const filteredProjects = useMemo(() => {
     if (!Array.isArray(projects)) return [];
@@ -308,6 +247,13 @@ export default function HomePage() {
     });
   }, [projects, query, corridor, budget, propertyType]);
 
+  // Paginated Sliced Projects
+  const totalPages = Math.ceil(filteredProjects.length / PROJECTS_PER_PAGE);
+  const paginatedProjects = useMemo(() => {
+    const startIndex = (currentPage - 1) * PROJECTS_PER_PAGE;
+    return filteredProjects.slice(startIndex, startIndex + PROJECTS_PER_PAGE);
+  }, [filteredProjects, currentPage]);
+
   const filtersActive =
     query.trim() !== '' || corridor !== 'All corridors' || budget !== 'Any budget' || propertyType !== 'All types';
 
@@ -316,6 +262,7 @@ export default function HomePage() {
     setCorridor('All corridors');
     setBudget('Any budget');
     setPropertyType('All types');
+    setCurrentPage(1);
   }
 
   function scrollToProjects() {
@@ -325,39 +272,6 @@ export default function HomePage() {
   function handleHeroSearch(e: React.FormEvent) {
     e.preventDefault();
     scrollToProjects();
-  }
-
-  function handleLeadChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
-    setLeadForm({ ...leadForm, [e.target.name]: e.target.value });
-  }
-
-  async function handleLeadSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLeadError(null);
-    setLeadSubmitting(true);
-    try {
-      const context = [
-        leadForm.corridor !== 'Any corridor' ? `Preferred corridor: ${leadForm.corridor}` : null,
-        leadForm.budget !== 'Any budget' ? `Budget: ${leadForm.budget}` : null,
-        leadForm.message.trim() ? `Message: ${leadForm.message.trim()}` : null,
-      ].filter(Boolean).join(' | ');
-
-      await submitInquiry({
-        fullName: leadForm.fullName.trim(),
-        phone: leadForm.phone.trim(),
-        email: leadForm.email.trim() || undefined,
-        message: context || undefined,
-        propertyId: null,
-      });
-
-      setLeadSubmitted(true);
-      setLeadForm({ fullName: '', phone: '', email: '', corridor: 'Any corridor', budget: 'Any budget', message: '' });
-    } catch (err: any) {
-      console.error(err);
-      setLeadError('Something went wrong submitting your details. Please try again, or call us directly.');
-    } finally {
-      setLeadSubmitting(false);
-    }
   }
 
   return (
@@ -388,7 +302,7 @@ export default function HomePage() {
                   type="text"
                   placeholder="Locality, project or corridor"
                   value={query}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+                  onChange={(e) => setQuery(e.target.value)}
                   aria-label="Search by project name or locality"
                 />
               </div>
@@ -454,50 +368,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="stat-strip">
-        <div className="wrap stat-grid">
-          <div className="stat">
-            <span className="stat-icon">{ICONS.building}</span>
-            <div><b>1,300+</b><span>active projects tracked across Pune MMR</span></div>
-          </div>
-          <div className="stat">
-            <span className="stat-icon">{ICONS.layers}</span>
-            <div><b>6</b><span>distinct growth corridors, each with its own price logic</span></div>
-          </div>
-          <div className="stat">
-            <span className="stat-icon">{ICONS.rupee}</span>
-            <div><b>₹45L–₹45Cr</b><span>range of live listings, from PCMC studios to Bund Garden penthouses</span></div>
-          </div>
-          <div className="stat">
-            <span className="stat-icon">{ICONS.users}</span>
-            <div><b>25+</b><span>developers with current Pune launches</span></div>
-          </div>
-        </div>
-      </div>
-
-      <section id="corridors" className="corridor-section">
-        <div className="wrap">
-          <div className="section-head reveal">
-            <p className="eyebrow">The corridor map</p>
-            <h2>Pune doesn&apos;t have one market. It has seven.</h2>
-            <p>Price in this city follows infrastructure, not just distance from Shivajinagar. Scroll along the line — each stop is a corridor with its own IT anchor, price band, and buyer profile.</p>
-          </div>
-        </div>
-        <div className="corridor-rail">
-          <div className="corridor-track">
-            {CORRIDORS.map((s) => (
-              <div className="stop reveal" key={s.node}>
-                <div className="node">{s.node}</div>
-                <span className="tag"><span className="tag-icon">{ICONS.pin}</span>{s.tag}</span>
-                <h4>{s.title}</h4>
-                <p className="locs">{s.desc}</p>
-                <p className="range">{s.range}<small>{s.sub}</small></p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section id="projects">
         <div className="wrap">
           <div className="section-head section-head-flex">
@@ -539,7 +409,7 @@ export default function HomePage() {
                   type="text"
                   placeholder="Search by project name…"
                   value={query}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+                  onChange={(e) => setQuery(e.target.value)}
                   aria-label="Search by project name"
                 />
               </div>
@@ -583,67 +453,108 @@ export default function HomePage() {
               No projects match your filters. <button type="button" className="finder-clear" onClick={clearFilters} style={{ marginLeft: '4px' }}>Clear filters</button>
             </p>
           ) : (
-            <div className="project-grid" style={{ marginTop: '24px' }}>
-            {filteredProjects.map((item: Project) => {
-              const cardImage = item.featured_image || item.imagesUrl?.[0] || '/placeholder.png';
-              const extraPhotos = (item.imagesUrl?.length || 0) - 1;
-          
-              return (
-                <div className="pcard" key={item.id}>
-                  <Link href={`/projects/${item.slug}`} className="pcard-img" aria-label={`View details for ${item.title}`}>
-                    <img src={cardImage} alt={item.title} loading="lazy" />
-                    {extraPhotos > 0 && (
-                      <span className="img-count">
-                        <span className="img-count-icon">{ICONS.camera}</span>
-                        +{extraPhotos}
-                      </span>
-                    )}
-                  </Link>
-          
-                  <div className="pcard-body">
-                    <div className="pcard-top">
-                      <span className="loc">
-                        <span className="loc-icon">{ICONS.pin}</span>
-                        {item.locality || item.city}
-                      </span>
-                      <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                        {item.propertyType && <span className="status ready">{item.propertyType}</span>}
-                        <span className="status">
-                          {item.rera_id ? 'MahaRERA Verified' : (item.constructionStatus?.replace(/_/g, ' ') || 'New Launch')}
-                        </span>
-                      </span>
-                    </div>
-          
-                    <Link href={`/projects/${item.slug}`} className="pcard-title-link">
-                      <h3>{item.title}</h3>
-                    </Link>
-          
-                    {item.possessionDate && (
-                      <div className="possession-date" style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                        Possession: <strong>{new Date(item.possessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</strong>
-                      </div>
-                    )}
-          
-                    <div className="divider" />
-          
-                    <div className="meta">
-                      <div className="price">
-                        {item.priceRange || item.price || formatPrice(item.min_price, item.max_price)}
-                        <small>{item.min_price && item.max_price ? 'Price range' : 'Starting Price'}</small>
-                      </div>
-                      <Link
-                        href={`/projects/${item.slug}`}
-                        className="btn btn-solid"
-                        style={{ padding: '6px 14px', fontSize: '12px' }}
-                      >
-                        View Details →
+            <>
+              <div className="project-grid" style={{ marginTop: '24px' }}>
+                {paginatedProjects.map((item: Project) => {
+                  const cardImage = item.featured_image || item.imagesUrl?.[0] || '/placeholder.png';
+                  const extraPhotos = (item.imagesUrl?.length || 0) - 1;
+
+                  return (
+                    <div className="pcard" key={item.id}>
+                      <Link href={`/projects/${item.slug}`} className="pcard-img" aria-label={`View details for ${item.title}`}>
+                        <img src={cardImage} alt={item.title} loading="lazy" />
+                        {extraPhotos > 0 && (
+                          <span className="img-count">
+                            <span className="img-count-icon">{ICONS.camera}</span>
+                            +{extraPhotos}
+                          </span>
+                        )}
                       </Link>
+
+                      <div className="pcard-body">
+                        <div className="pcard-top">
+                          <span className="loc">
+                            <span className="loc-icon">{ICONS.pin}</span>
+                            {item.locality || item.city}
+                          </span>
+                          <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            {item.propertyType && <span className="status ready">{item.propertyType}</span>}
+                            <span className="status">
+                              {item.rera_id ? 'MahaRERA Verified' : (item.constructionStatus?.replace(/_/g, ' ') || 'New Launch')}
+                            </span>
+                          </span>
+                        </div>
+
+                        <Link href={`/projects/${item.slug}`} className="pcard-title-link">
+                          <h3>{item.title}</h3>
+                        </Link>
+
+                        {item.possessionDate && (
+                          <div className="possession-date" style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                            Possession: <strong>{new Date(item.possessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</strong>
+                          </div>
+                        )}
+
+                        <div className="divider" />
+
+                        <div className="meta">
+                          <div className="price">
+                            {item.priceRange || item.price || formatPrice(item.min_price, item.max_price)}
+                            <small>{item.min_price && item.max_price ? 'Price range' : 'Starting Price'}</small>
+                          </div>
+                          <Link
+                            href={`/projects/${item.slug}`}
+                            className="btn btn-solid"
+                            style={{ padding: '6px 14px', fontSize: '12px' }}
+                          >
+                            View Details →
+                          </Link>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginTop: '32px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-solid"
+                    style={{ padding: '8px 16px', opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                    onClick={() => {
+                      if (currentPage > 1) {
+                        setCurrentPage((p) => p - 1);
+                        scrollToProjects();
+                      }
+                    }}
+                    disabled={currentPage === 1}
+                  >
+                    ← Previous
+                  </button>
+
+                  <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)' }}>
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    className="btn btn-solid"
+                    style={{ padding: '8px 16px', opacity: currentPage === totalPages ? 0.5 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                    onClick={() => {
+                      if (currentPage < totalPages) {
+                        setCurrentPage((p) => p + 1);
+                        scrollToProjects();
+                      }
+                    }}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next →
+                  </button>
                 </div>
-              );
-            })}
-          </div>
+              )}
+            </>
           )}
         </div>
       </section>
@@ -666,33 +577,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="markets" style={{ background: 'var(--stone-2)' }}>
-        <div className="wrap">
-          <div className="section-head reveal">
-            <p className="eyebrow">Price snapshot</p>
-            <h2>What each corridor costs, at a glance</h2>
-            <p>Ranges pulled from current live listings in each corridor — useful for a first gut-check before you shortlist.</p>
-          </div>
-
-          <div className="table-wrap reveal">
-            <table>
-              <thead>
-                <tr><th>Corridor</th><th>Anchor locality</th><th>Price range</th><th>Typical config mix</th></tr>
-              </thead>
-              <tbody>
-                <tr data-label="West IT Corridor"><td className="loc-name" data-th="Corridor">West IT Corridor</td><td data-th="Anchor locality">Hinjewadi, Wakad, Baner</td><td className="price-cell" data-th="Price range">₹75L – ₹8Cr</td><td data-th="Config mix">2–4 BHK</td></tr>
-                <tr data-label="East IT Corridor"><td className="loc-name" data-th="Corridor">East IT Corridor</td><td data-th="Anchor locality">Kharadi, Magarpatta</td><td className="price-cell" data-th="Price range">₹85L – ₹7.5Cr</td><td data-th="Config mix">2–4 BHK</td></tr>
-                <tr data-label="Riverside & NW"><td className="loc-name" data-th="Corridor">Riverside &amp; NW</td><td data-th="Anchor locality">Balewadi, Bavdhan</td><td className="price-cell" data-th="Price range">₹1.0Cr – ₹3.9Cr</td><td data-th="Config mix">2–3 BHK</td></tr>
-                <tr data-label="SW / Old Pune Fringe"><td className="loc-name" data-th="Corridor">SW / Old Pune Fringe</td><td data-th="Anchor locality">Kothrud, NIBM</td><td className="price-cell" data-th="Price range">₹95L – ₹13Cr</td><td data-th="Config mix">2–4.5 BHK</td></tr>
-                <tr data-label="Affordable & Industrial"><td className="loc-name" data-th="Corridor">Affordable &amp; Industrial</td><td data-th="Anchor locality">Pimpri, Mamurdi, Punawale</td><td className="price-cell" data-th="Price range">₹52L – ₹3.2Cr</td><td data-th="Config mix">1–3 BHK</td></tr>
-                <tr data-label="Central Premium"><td className="loc-name" data-th="Corridor">Central Premium</td><td data-th="Anchor locality">Koregaon Park, Bund Garden</td><td className="price-cell" data-th="Price range">₹99L – ₹45Cr</td><td data-th="Config mix">3–6 BHK</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p className="table-note">Ranges reflect listed unit prices across current projects in each corridor and will shift as new phases launch.</p>
-        </div>
-      </section>
-
       <section>
         <div className="wrap">
           <div className="section-head reveal">
@@ -705,161 +589,9 @@ export default function HomePage() {
               'VTP Realty', 'Vilas Javdekar Developers', 'Mahindra Lifespace', 'Gera Developer',
               'Hiranandani Group', 'Puravankara Group', 'Birla Estates', 'Kalpataru Group',
               'Sobha Limited', 'Adani Realty',
-            ].map((name) => (
-              <span className="chip" key={name}>{name}</span>
+            ].map((builder) => (
+              <div className="builder-pill" key={builder}>{builder}</div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="testimonial-section" style={{ background: 'var(--stone-2)' }}>
-        <div className="wrap">
-          <div className="section-head reveal">
-            <p className="eyebrow">Recent buyers</p>
-            <h2>What it&apos;s actually like to buy this way</h2>
-          </div>
-          <div className="testimonial-grid reveal">
-            {TESTIMONIALS.map((t) => (
-              <div className="tcard" key={t.name}>
-                <span className="tcard-quote-icon">{ICONS.quote}</span>
-                <p className="tcard-text">{t.quote}</p>
-                <div className="tcard-foot">
-                  <span className="tcard-name">{t.name}</span>
-                  <span className="tcard-detail">{t.detail}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="guides">
-        <div className="wrap">
-          <div className="section-head reveal">
-            <p className="eyebrow">Before you sign anything</p>
-            <h2>Guides for first-time Pune buyers</h2>
-            <p>The paperwork and math that site-visit sales teams tend to gloss over.</p>
-          </div>
-
-          <div className="guide-grid reveal">
-            <div className="gcard">
-              <span className="num"><span className="num-icon">{ICONS.shield}</span>01 · Legal</span>
-              <h3>MahaRERA registration, and what it actually protects</h3>
-              <p>Every project on this page should carry a MahaRERA number — here&apos;s how to verify one, and what it does and doesn&apos;t guarantee about delivery timelines.</p>
-              <span className="read">Read the guide →</span>
-            </div>
-            <div className="gcard">
-              <span className="num"><span className="num-icon">{ICONS.ruler}</span>02 · Measurement</span>
-              <h3>Carpet area vs built-up vs super built-up</h3>
-              <p>Why the sqft figure on the brochure isn&apos;t the sqft figure you&apos;ll actually live in, and how the loading percentage changes the real price per square foot.</p>
-              <span className="read">Read the guide →</span>
-            </div>
-            <div className="gcard">
-              <span className="num"><span className="num-icon">{ICONS.bank}</span>03 · Financing</span>
-              <h3>Home loans: LTV, pre-EMI, and the fine print</h3>
-              <p>How loan-to-value ratios work for under-construction property, what pre-EMI actually costs you, and the documents banks ask for in Pune specifically.</p>
-              <span className="read">Read the guide →</span>
-            </div>
-            <div className="gcard">
-              <span className="num"><span className="num-icon">{ICONS.clock}</span>04 · Timing</span>
-              <h3>Ready-to-move vs under-construction, honestly compared</h3>
-              <p>The GST difference, the possession-delay risk, and why the &quot;price gap&quot; between the two is usually smaller than it first looks.</p>
-              <span className="read">Read the guide →</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="faq-section" style={{ background: 'var(--stone-2)' }}>
-        <div className="wrap">
-          <div className="section-head reveal">
-            <p className="eyebrow">Questions</p>
-            <h2>Frequently asked</h2>
-          </div>
-          <div className="faq-list reveal">
-            {FAQS.map((item, i) => (
-              <div className={`faq-item ${openFaq === i ? 'open' : ''}`} key={item.q}>
-                <button
-                  type="button"
-                  className="faq-q"
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  aria-expanded={openFaq === i}
-                >
-                  {item.q}
-                  <span className="faq-toggle">{openFaq === i ? '−' : '+'}</span>
-                </button>
-                {openFaq === i && <p className="faq-a">{item.a}</p>}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="lead" className="lead-section">
-        <div className="wrap lead-wrap">
-          <div className="lead-copy reveal">
-            <p className="eyebrow" style={{ color: 'var(--gold)' }}>Get matched, free</p>
-            <h2 style={{ color: 'var(--stone)' }}>Talk to someone who isn&apos;t on commission from a single builder.</h2>
-            <p style={{ color: '#d9d2c2' }}>Tell us your corridor, budget and timeline — we&apos;ll shortlist three projects worth an actual site visit, and connect you directly with the developer sales teams. No spam, no repeat cold calls.</p>
-            <ul className="lead-points">
-              <li><span className="lead-point-icon">{ICONS.check}</span>Personalised shortlist within 24 hours</li>
-              <li><span className="lead-point-icon">{ICONS.check}</span>MahaRERA status checked on every suggestion</li>
-              <li><span className="lead-point-icon">{ICONS.check}</span>Zero brokerage fee to you</li>
-            </ul>
-          </div>
-
-          <div className="lead-form-card reveal">
-            {leadSubmitted ? (
-              <div className="lead-success">
-                <span className="lead-success-icon">{ICONS.check}</span>
-                <h3>Thanks — we&apos;ve got it.</h3>
-                <p>A member of the team will reach out within 24 hours with your shortlist.</p>
-                <button type="button" className="btn" onClick={() => setLeadSubmitted(false)}>Submit another enquiry</button>
-              </div>
-            ) : (
-              <form onSubmit={handleLeadSubmit} className="lead-form">
-                <div className="lead-form-row">
-                  <label>
-                    Full name *
-                    <input name="fullName" required value={leadForm.fullName} onChange={handleLeadChange} placeholder="Your name" />
-                  </label>
-                  <label>
-                    Phone number *
-                    <input name="phone" required type="tel" value={leadForm.phone} onChange={handleLeadChange} placeholder="+91 98xxxxxxxx" />
-                  </label>
-                </div>
-                <label>
-                  Email
-                  <input name="email" type="email" value={leadForm.email} onChange={handleLeadChange} placeholder="you@email.com" />
-                </label>
-                <div className="lead-form-row">
-                  <label>
-                    Preferred corridor
-                    <select name="corridor" value={leadForm.corridor} onChange={handleLeadChange}>
-                      <option>Any corridor</option>
-                      {CORRIDORS.map((c) => <option key={c.node} value={c.title}>{c.title}</option>)}
-                    </select>
-                  </label>
-                  <label>
-                    Budget
-                    <select name="budget" value={leadForm.budget} onChange={handleLeadChange}>
-                      {BUDGETS.map((b) => <option key={b} value={b}>{b}</option>)}
-                    </select>
-                  </label>
-                </div>
-                <label>
-                  Anything else we should know?
-                  <textarea name="message" rows={3} value={leadForm.message} onChange={handleLeadChange} placeholder="Timeline, must-have amenities, family size…" />
-                </label>
-
-                {leadError && <p className="lead-error">{leadError}</p>}
-
-                <button type="submit" disabled={leadSubmitting} className="btn btn-solid lead-submit">
-                  {leadSubmitting ? 'Submitting…' : 'Get my shortlist →'}
-                </button>
-                <p className="lead-disclaimer">By submitting, you agree to be contacted about matching projects. We don&apos;t sell your data.</p>
-              </form>
-            )}
           </div>
         </div>
       </section>

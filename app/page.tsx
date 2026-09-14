@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
 import { parsePriceToLakh } from '@/lib/price';
 import { submitInquiry } from '@/lib/inquiries';
-import { Suspense } from 'react';
-import NewsSection from '@/components/NewsSection';
+
 
 
 const PROJECTS_PER_PAGE = 6;
@@ -571,11 +570,7 @@ export default function HomePage()
             </>
           )}
         </div>
-      </section>
-      {/* Automated Real Estate News Feed */}
-      <Suspense fallback={<NewsSkeleton />}>
-        <NewsSection />
-      </Suspense>
+      </section>      
     </>
     
   );

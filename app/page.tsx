@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
 import { parsePriceToLakh } from '@/lib/price';
 import { submitInquiry } from '@/lib/inquiries';
+import { Suspense } from 'react';
+import NewsSection from '@/components/NewsSection';
+
 
 const PROJECTS_PER_PAGE = 6;
 
@@ -196,7 +199,17 @@ function matchesBudget(lakh: number, bucket: string): boolean {
 
 type PropertyTypeFilter = PropertyType | 'All types';
 
-export default function HomePage() {
+function NewsSkeleton() {
+  return (
+    <section className="py-12 bg-slate-900 text-white text-center">
+      <div className="animate-pulse text-slate-400 text-sm">
+        Loading latest Pune real estate news...
+      </div>
+    </section>
+  );
+}
+export default function HomePage() 
+{
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [query, setQuery] = useState('');
@@ -367,6 +380,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+  
 
       <section id="projects">
         <div className="wrap">
@@ -558,43 +572,15 @@ export default function HomePage() {
           )}
         </div>
       </section>
-
-      <section className="process-section" style={{ background: 'var(--basalt)' }}>
-        <div className="wrap">
-          <div className="section-head reveal">
-            <p className="eyebrow" style={{ color: 'var(--gold)' }}>How it works</p>
-            <h2 style={{ color: 'var(--stone)' }}>From corridor confusion to a shortlist, in four steps</h2>
-          </div>
-          <div className="process-grid reveal">
-            {PROCESS_STEPS.map((step) => (
-              <div className="pstep" key={step.n}>
-                <span className="pstep-n">{step.n}</span>
-                <h4>{step.title}</h4>
-                <p>{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <div className="wrap">
-          <div className="section-head reveal">
-            <p className="eyebrow">Who&apos;s building</p>
-            <h2>Developers active in Pune right now</h2>
-          </div>
-          <div className="builder-row reveal">
-            {[
-              'Godrej Properties', 'Lodha Group', 'Kolte Patil Developers', 'Shapoorji Pallonji Group',
-              'VTP Realty', 'Vilas Javdekar Developers', 'Mahindra Lifespace', 'Gera Developer',
-              'Hiranandani Group', 'Puravankara Group', 'Birla Estates', 'Kalpataru Group',
-              'Sobha Limited', 'Adani Realty',
-            ].map((builder) => (
-              <div className="builder-pill" key={builder}>{builder}</div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Automated Real Estate News Feed */}
+      <Suspense fallback={<NewsSkeleton />}>
+        <NewsSection />
+      </Suspense>
     </>
+    
   );
+  
+  
+  
 }
+

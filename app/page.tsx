@@ -296,8 +296,8 @@ export default function HomePage()
 
         <div className="wrap hero-content">
           <p className="eyebrow">Pune, Maharashtra</p>
-          <h1 className="hero-title-light">Find your next home in <em>Pune</em>, without the sales pitch.</h1>
-          <p className="lede-light">Six growth corridors, hundreds of live launches, and a lot of sales pressure. We map the city by geography and price — not by whoever&apos;s advertising loudest this week.</p>
+          <h1 className="hero-title-light"> Unfiltered  <em>Pune</em>  spaces. </h1>
+          <p className="lede-light">Seven growth corridors, hundreds of live launches, and a lot of sales pressure. We map the city by geography and price — not by whoever&apos;s advertising loudest this week.</p>
 
           <div className="search-card">
             <div className="search-tabs">
@@ -388,7 +388,7 @@ export default function HomePage()
               <p className="eyebrow">Active Inventory</p>
               <h2>Latest Projects</h2>
             </div>
-            <Link href="/admin/add-project" className="btn btn-solid">+ Add New Project</Link>
+          
           </div>
 
           <div className="type-tabs reveal">

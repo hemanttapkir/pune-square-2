@@ -3,7 +3,7 @@
    ========================================================================= */
 
    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
-
+   @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&display=swap');
    :root {
      /* Color Palette */
      --bg-dark: #0A0C0F;
@@ -134,54 +134,139 @@
      border-color: var(--accent-gold);
      color: var(--bg-dark);
    }
-   
-   /* Header & Navigation */
-   header {
-     position: fixed;
-     top: 0; left: 0; right: 0;
-     z-index: 100;
-     background: rgba(251, 251, 250, 0.92);
-     backdrop-filter: blur(20px);
-     border-bottom: 1px solid var(--line-light);
-   }
-   
-   .nav-inner {
-     display: flex;
-     align-items: center;
-     justify-content: space-between;
-     padding: 20px 0;
-   }
-   
-   .logo {
-     font-family: var(--font-serif);
-     font-weight: 600;
-     font-size: 24px;
-     letter-spacing: 0.1em;
-     text-transform: uppercase;
-     color: var(--text-dark);
-     user-select: none;
-   }
-   
-   nav ul {
-     list-style: none;
-     display: flex;
-     gap: 36px;
-   }
-   
-   nav a {
-     font-family: var(--font-sans);
-     font-size: 11px;
-     font-weight: 600;
-     letter-spacing: 0.12em;
-     text-transform: uppercase;
-     color: var(--text-muted);
-     transition: color 0.3s ease;
-   }
-   
-   nav a:hover {
-     color: var(--text-dark);
-   }
-   
+/* Header Layout */
+header {
+  position: relative;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 70px;
+}
+
+.logo {
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #0f172a; /* Deep dark tone for 'Pune' */
+}
+
+.gold-text {
+  background: linear-gradient(
+    135deg,
+    #bf953f 0%,
+    #d3cf9c 25%,
+    #b38728 50%,
+    #e1dca4 75%,
+    #aa771c 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+}
+
+/* Desktop Navigation */
+.nav-menu ul {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-menu a {
+  text-decoration: none;
+  color: #374151;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.nav-menu a:hover {
+  color: #2563eb;
+}
+
+/* Hamburger Toggle Button (Hidden on Desktop) */
+.menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.menu-toggle span {
+  width: 100%;
+  height: 2px;
+  background-color: #111827;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Mobile Screens */
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: flex;
+  }
+
+  /* Animate Hamburger into 'X' when active */
+  .menu-toggle.active span:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+
+  .menu-toggle.active span:nth-child(2) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+
+  /* Mobile Dropdown Menu */
+  .nav-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    
+    /* Hidden by default */
+    display: none;
+  }
+
+  /* Show menu when active */
+  .nav-menu.active {
+    display: block;
+  }
+
+  .nav-menu ul {
+    flex-direction: column;
+    gap: 0;
+    padding: 0.5rem 0;
+  }
+
+  .nav-menu li a {
+    display: block;
+    padding: 0.85rem 1.5rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+}
    /* Hero Section */
    .hero-v2 {
      position: relative;

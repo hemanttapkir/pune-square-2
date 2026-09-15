@@ -8,7 +8,7 @@ export default function SiteFooter() {
         <div className="foot-grid">
           <div>
             <div className="logo">
-              Pune<span>Assets</span>
+            Pune <span className="gold-text">Assets</span>
             </div>
             <p className="about">
               An independent, informational guide to Pune&apos;s residential real estate —

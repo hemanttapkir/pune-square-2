@@ -18,10 +18,10 @@ export default function Header() {
     <header>
       <div className="wrap">
         <div className="nav-inner">
-          {/* Logo */}
-          <Link href="/" className="logo" onClick={closeMenu}>
-            Pune Assets
-          </Link>
+       {/* Logo */}
+<Link href="/" className="logo" onClick={closeMenu}>
+  Pune <span className="gold-text">Assets</span>
+</Link>
 
           {/* Hamburger Toggle Button */}
           <button

@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
 import { parsePriceToLakh } from '@/lib/price';
-import { submitInquiry } from '@/lib/inquiries';
 
 
 
@@ -66,30 +65,18 @@ const CORRIDORS = [
   }
 ];
 
-const BUDGETS = ['Any budget', 'Under ₹80L', '₹80L – ₹1.5Cr', '₹1.5Cr – ₹3Cr', '₹3Cr and above'];
-
-const PROCESS_STEPS = [
-  {
-    n: '01',
-    title: 'Tell us your corridor & budget',
-    desc: 'Two minutes on the shortlist form below — where in Pune, what budget, and when you need to move.',
-  },
-  {
-    n: '02',
-    title: 'We cross-check live inventory',
-    desc: 'We match your brief against current launches across all six corridors, not just one builder\u2019s portfolio.',
-  },
-  {
-    n: '03',
-    title: 'You get three projects, not thirty',
-    desc: 'A short, honest shortlist with RERA status, price-per-sqft context, and possession timelines.',
-  },
-  {
-    n: '04',
-    title: 'Site visits, on your schedule',
-    desc: 'We coordinate visits directly with developer sales teams — no repeat cold calls from five agencies.',
-  },
+const DEVELOPERS = [
+  { name: 'Kolte-Patil Developers', initials: 'KP', match: 'kolte', logo: '/developers/kolte-patil.png', note: 'Listed since 1991 — wide spread across west Pune' },
+  { name: 'Godrej Properties', initials: 'GP', match: 'godrej', logo: '/developers/godrej.png', note: 'National builder, strong in Hinjewadi and Mamurdi' },
+  { name: 'Gera Developments', initials: 'GD', match: 'gera', logo: '/developers/gera.png', note: 'ChildCentric homes, 7-year warranty on construction' },
+  { name: 'Panchshil Realty', initials: 'PR', match: 'panchshil', logo: '/developers/panchshil.png', note: 'Ultra-luxury and Grade-A commercial in east Pune' },
+  { name: 'VTP Realty', initials: 'VT', match: 'vtp', logo: '/developers/vtp.png', note: 'High-volume townships in Kharadi and Mahalunge' },
+  { name: 'Kumar Properties', initials: 'KU', match: 'kumar', logo: '/developers/kumar.png', note: 'One of the oldest Pune names, central belt focus' },
+  { name: 'Nyati Group', initials: 'NY', match: 'nyati', logo: '/developers/nyati.png', note: 'Mid-segment supply across NIBM and Wagholi' },
+  { name: 'Rohan Builders', initials: 'RB', match: 'rohan', logo: '/developers/rohan.png', note: 'Known for on-time possession and Kharadi stock' },
 ];
+
+const BUDGETS = ['Any budget', 'Under ₹80L', '₹80L – ₹1.5Cr', '₹1.5Cr – ₹3Cr', '₹3Cr and above'];
 
 const ICONS = {
   building: (
@@ -144,48 +131,6 @@ const ICONS = {
   ),
 };
 
-const PROPERTY_ICONS: Record<PropertyType, React.ReactNode> = {
-  "1BHK": ICONS.building,
-  "2BHK": ICONS.building,
-  "3BHK": ICONS.building,
-  "4BHK": ICONS.building,
-  Villa: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 11 12 3l9 8" />
-      <path d="M5 10v11h14V10" />
-      <path d="M10 21v-6h4v6" />
-    </svg>
-  ),
-  Studio: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 18v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5" />
-      <path d="M2 18h20M4 11V7a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v4" />
-    </svg>
-  ),
-  Penthouse: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="5" y="9" width="14" height="13" rx="1" />
-      <path d="M9 9V4h6v5" />
-      <path d="M9 22v-5h6v5" />
-    </svg>
-  ),
-  Duplex: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9 12 4l9 5-9 5-9-5z" />
-      <path d="M3 9v7l9 5 9-5V9" />
-      <path d="M12 14v5" />
-    </svg>
-  ),
-  Commercial: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 21h18" />
-      <path d="M5 21V9l7-5 7 5v12" />
-      <path d="M9 21v-6h6v6" />
-      <path d="M9 12h.01M15 12h.01M9 8h.01M15 8h.01" />
-    </svg>
-  ),
-};
-
 function matchesBudget(lakh: number, bucket: string): boolean {
   switch (bucket) {
     case 'Under ₹80L': return lakh < 80;
@@ -198,15 +143,6 @@ function matchesBudget(lakh: number, bucket: string): boolean {
 
 type PropertyTypeFilter = PropertyType | 'All types';
 
-function NewsSkeleton() {
-  return (
-    <section className="py-12 bg-slate-900 text-white text-center">
-      <div className="animate-pulse text-slate-400 text-sm">
-        Loading latest Pune real estate news...
-      </div>
-    </section>
-  );
-}
 export default function HomePage() 
 {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -216,6 +152,7 @@ export default function HomePage()
   const [budget, setBudget] = useState('Any budget');
   const [propertyType, setPropertyType] = useState<PropertyTypeFilter>('All types');
   const [searchTab, setSearchTab] = useState<'buy' | 'rent'>('buy');
+  const [logoFailed, setLogoFailed] = useState<Record<string, boolean>>({});
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -351,35 +288,56 @@ export default function HomePage()
         </div>
       </section>
 
-      <section className="category-section">
+      <section className="developers-section">
         <div className="wrap">
           <div className="section-head reveal">
-            <p className="eyebrow">Browse by type</p>
-            <h2>Find the configuration you&apos;re after</h2>
+            <p className="eyebrow">Who&apos;s building</p>
+            <h2>Developers of Pune</h2>
+            <p className="section-sub">
+              The names behind most of the city&apos;s live inventory. Tap one to see their projects
+              in the list below.
+            </p>
           </div>
-          <div className="category-grid reveal">
-            {(PROPERTY_TYPES || []).map((type) => {
-              const count = projects.filter((p) => p.propertyType === type).length;
+
+          <div className="developer-grid reveal">
+            {DEVELOPERS.map((d) => {
+              const count = projects.filter((p) =>
+                (p.title || '').toLowerCase().includes(d.match)
+              ).length;
+
               return (
                 <button
-                  key={type}
+                  key={d.name}
                   type="button"
-                  className={`category-tile ${propertyType === type ? 'active' : ''}`}
+                  className={`developer-tile ${query.trim().toLowerCase() === d.match ? 'active' : ''}`}
+                  aria-label={`Show ${d.name} projects`}
                   onClick={() => {
-                    setPropertyType(type);
+                    setQuery(d.match);
                     scrollToProjects();
                   }}
                 >
-                  <span className="category-icon">{PROPERTY_ICONS[type]}</span>
-                  <span className="category-name">{type}</span>
-                  <span className="category-count">{count} listing{count === 1 ? '' : 's'}</span>
+                  <span className="developer-logo">
+                    {logoFailed[d.match] ? (
+                      <span className="developer-fallback">{d.initials}</span>
+                    ) : (
+                      <img
+                        src={d.logo}
+                        alt={d.name}
+                        loading="lazy"
+                        onError={() => setLogoFailed((prev) => ({ ...prev, [d.match]: true }))}
+                      />
+                    )}
+                  </span>
+                  <span className="developer-note">{d.note}</span>
+                  <span className="developer-count">
+                    {count} live{count === 1 ? ' project' : ' projects'}
+                  </span>
                 </button>
               );
             })}
           </div>
         </div>
       </section>
-  
 
       <section id="projects">
         <div className="wrap">
@@ -578,4 +536,3 @@ export default function HomePage()
   
   
 }
-

@@ -72,8 +72,8 @@ const DEVELOPERS = [
   { name: 'Panchshil Realty', initials: 'PR', match: 'panchshil', logo: '/developers/panchshil.png', note: 'Ultra-luxury and Grade-A commercial in east Pune' },
   { name: 'VTP Realty', initials: 'VT', match: 'vtp', logo: '/developers/vtp.png', note: 'High-volume townships in Kharadi and Mahalunge' },
   { name: 'Kumar Properties', initials: 'KU', match: 'kumar', logo: '/developers/kumar.png', note: 'One of the oldest Pune names, central belt focus' },
-  { name: 'Nyati Group', initials: 'NY', match: 'nyati', logo: '/developers/nyati.png', note: 'Mid-segment supply across NIBM and Wagholi' },
-  { name: 'Rohan Builders', initials: 'RB', match: 'rohan', logo: '/developers/rohan.png', note: 'Known for on-time possession and Kharadi stock' },
+  { name: 'VJ Developers', initials: 'VJ', match: 'VJ', logo: '/developers/vj.png', note: 'Trusted track record of always delivering modern residential projects on time' },
+  { name: 'Lodha Group', initials: 'LG', match: 'lodha', logo: '/developers/lodha.png', note: 'Ultra-luxury residential projects and massive resort-style townships equipped with world-class amenities.' },
 ];
 
 const BUDGETS = ['Any budget', 'Under ₹80L', '₹80L – ₹1.5Cr', '₹1.5Cr – ₹3Cr', '₹3Cr and above'];

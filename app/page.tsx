@@ -140,7 +140,15 @@ function matchesBudget(lakh: number, bucket: string): boolean {
     default: return true;
   }
 }
-
+// Splits a property_type value like "1BHK, 2BHK" into ["1BHK", "2BHK"].
+// Handles the field whether it's already a single type or a comma-separated list.
+function getPropertyTypeList(raw?: string | null): string[] {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
 type PropertyTypeFilter = PropertyType | 'All types';
 
 export default function HomePage() 
@@ -189,8 +197,8 @@ export default function HomePage()
         const lakh = item.priceLakh ?? parsePriceToLakh(item.price || '');
         if (lakh !== null && !matchesBudget(lakh, budget)) return false;
       }
-      if (propertyType !== 'All types' && item.propertyType !== propertyType) {
-        return false;
+      if (propertyType !== 'All types' && !getPropertyTypeList(item.propertyType).includes(propertyType)) {
+      return false;
       }
       return true;
     });

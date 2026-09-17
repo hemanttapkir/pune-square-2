@@ -9,8 +9,8 @@ export const PROPERTY_TYPES = [
   'Villa',
   'Studio',
   'Penthouse',
-  'Duplex',
-  'Commercial',
+  'Office',
+  'Showroom',
 ] as const;
 
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
@@ -38,6 +38,7 @@ export interface Project {
   rera_id?: string | null;
   rera?: string;
   propertyType?: PropertyType | string;
+  propertyTypes?: string[]; // NEW: normalized array of all types for filtering
   amenities?: string[];
   unit_pricing?: UnitPricing[];
   imagesUrl?: string[];
@@ -62,8 +63,25 @@ function formatMinMaxPrice(min?: number | null, max?: number | null): string | n
   return `Starting ${toLacsOrCr(min || max!)}`;
 }
 
+// Normalizes property_type (comma-separated string, array, or single value)
+// into a clean string array so filters can use .includes() instead of ===
+function parsePropertyTypes(raw: unknown): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw.map((t) => String(t).trim()).filter(Boolean);
+  }
+  return String(raw)
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
+
 // Maps raw Supabase row into standard Project interface
-function mapProperty(property: any, imagesUrl: string[] = [], reelsData: { url: string; title?: string; thumbnail?: string }[] = []): Project {
+function mapProperty(
+  property: any,
+  imagesUrl: string[] = [],
+  reelsData: { url: string; title?: string; thumbnail?: string }[] = []
+): Project {
   // Try calculating from unit_pricing first
   const { label: startingPrice, lakh: priceLakh } = getStartingPrice(property.unit_pricing);
   const calculatedRange = getPriceRange(property.unit_pricing);
@@ -92,6 +110,7 @@ function mapProperty(property: any, imagesUrl: string[] = [], reelsData: { url: 
     rera_id: property.rera_id,
     rera: property.rera_id,
     propertyType: property.property_type,
+    propertyTypes: parsePropertyTypes(property.property_type), // NEW
     amenities: property.amenities || [],
     unit_pricing: property.unit_pricing || [],
     imagesUrl: finalImages,
@@ -139,7 +158,7 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
     .select('image_url')
     .eq('property_id', property.id);
 
-    const { data: reels } = await supabase
+  const { data: reels } = await supabase
     .from('property_reels')
     .select('video_url, title, thumbnail_url, sort_order')
     .eq('property_id', property.id)
@@ -151,7 +170,8 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
       : property.featured_image
       ? [property.featured_image]
       : [];
- const reelsData =
+
+  const reelsData =
     reels && reels.length > 0
       ? reels.map((r) => ({
           url: r.video_url,
@@ -159,8 +179,9 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
           thumbnail: r.thumbnail_url ?? undefined,
         }))
       : [];
-      return mapProperty(property, imagesUrl, reelsData);
-    }
+
+  return mapProperty(property, imagesUrl, reelsData);
+}
 
 // Fetch similar projects in the same city
 export async function getSimilarProjects(
@@ -175,6 +196,16 @@ export async function getSimilarProjects(
   const others = rest.filter((p) => !sameCity.includes(p));
 
   return [...sameCity, ...others].slice(0, limit);
+}
+
+// Filters a list of projects by property type using inclusion logic,
+// so properties with multiple types (e.g. "1BHK, 2BHK") match any of their types.
+export function filterProjectsByType(
+  projects: Project[],
+  selectedType: PropertyType | 'All types' | string
+): Project[] {
+  if (selectedType === 'All types') return projects;
+  return projects.filter((p) => (p.propertyTypes || []).includes(selectedType));
 }
 
 // Add new project to Supabase

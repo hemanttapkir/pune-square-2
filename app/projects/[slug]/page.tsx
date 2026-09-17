@@ -386,7 +386,7 @@ export default function ProjectDetailPage() {
           {/* Gallery */}
           <div>
             <div style={{ borderRadius: 4, overflow: 'hidden', background: '#eee' }}>
-              <img src={images[activeImage]} alt={project.title} style={{ width: '100%', maxHeight: 460, objectFit: 'cover', display: 'block' }} />
+              <img src={images[activeImage]} alt={project.title} style={{ width: '100%', maxHeight: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
             {images.length > 1 && (
               <div style={{ display: 'flex', gap: 10, marginTop: 10, overflowX: 'auto' }}>

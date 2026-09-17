@@ -4,8 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
 import { parsePriceToLakh } from '@/lib/price';
-
-
+import NewsSection from "@/components/NewsSection";
 
 const PROJECTS_PER_PAGE = 6;
 
@@ -304,7 +303,7 @@ export default function HomePage()
         </div>
       </section>
 
-      <section className="developers-section">
+      <section id="developers" className="developers-section">
         <div className="wrap">
           <div className="section-head reveal">
             <p className="eyebrow">Who&apos;s building</p>
@@ -545,6 +544,7 @@ export default function HomePage()
           )}
         </div>
       </section>      
+      <NewsSection />
     </>
     
   );

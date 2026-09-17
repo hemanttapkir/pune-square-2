@@ -43,13 +43,13 @@ export default function Header() {
                 </Link>
               </li>
               <li>
-                <Link href="#corridors" onClick={closeMenu}>
-                  Corridors
+                <Link href="#developers" onClick={closeMenu}>
+                  Developers
                 </Link>
               </li>
               <li>
-                <Link href="#markets" onClick={closeMenu}>
-                  Markets
+                <Link href="#news" onClick={closeMenu}>
+                  Markets News
                 </Link>
               </li>
               <li>

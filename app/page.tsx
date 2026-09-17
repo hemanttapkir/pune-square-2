@@ -184,9 +184,17 @@ export default function HomePage()
     if (!Array.isArray(projects)) return [];
 
     return projects.filter((item: Project) => {
-      if (query.trim() && !item.title.toLowerCase().includes(query.trim().toLowerCase())) {
-        return false;
-      }
+      if (query.trim()) {
+           const q = query.trim().toLowerCase();
+             const searchable = [item.title, item.locality, item.city, item.address]
+                 .filter(Boolean)
+               .join(' ')
+                 .toLowerCase();
+      
+              if (!searchable.includes(q)) {
+                return false;
+                }
+           }
       if (corridor !== 'All corridors') {
         const c = CORRIDORS.find((c) => c.title === corridor);
         if (c && !c.localities.some((loc) => item.location?.toLowerCase().includes(loc))) {

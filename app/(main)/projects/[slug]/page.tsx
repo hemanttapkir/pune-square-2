@@ -135,10 +135,43 @@ function parseRupees(value?: string | number | null): number | null {
   return Number.isFinite(num) ? num : null;
 }
 
+/**
+ * Indian digit grouping (1,23,456) without Intl.
+ * Intl.NumberFormat('en-IN') can differ between Node (small-ICU) and the
+ * browser, which breaks hydration — this is deterministic everywhere.
+ */
+function groupIndian(n: number): string {
+  const s = Math.round(Math.abs(n)).toString();
+  const sign = n < 0 ? '-' : '';
+  if (s.length <= 3) return sign + s;
+  const last3 = s.slice(-3);
+  const rest = s.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+  return `${sign}${rest},${last3}`;
+}
+
 function formatRupees(n: number): string {
   if (n >= 1e7) return `₹${(n / 1e7).toFixed(2).replace(/\.00$/, '')} Cr`;
   if (n >= 1e5) return `₹${(n / 1e5).toFixed(2).replace(/\.00$/, '')} L`;
-  return `₹${Math.round(n).toLocaleString('en-IN')}`;
+  return `₹${groupIndian(n)}`;
+}
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/**
+ * Deterministic "March 2027" / "Mar 2027" formatting.
+ * Uses a fixed IST offset (UTC+5:30, no DST) and getUTC* accessors so the
+ * server's timezone can never disagree with the browser's.
+ */
+function formatMonthYear(input?: string | Date | null, short = false): string {
+  if (!input) return '';
+  const d = typeof input === 'string' ? new Date(input) : input;
+  if (Number.isNaN(d.getTime())) return '';
+  const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
+  const month = MONTHS[ist.getUTCMonth()];
+  return `${short ? month.slice(0, 3) : month} ${ist.getUTCFullYear()}`;
 }
 
 function computeEmi(principal: number, annualRatePct: number, years: number): number {
@@ -230,7 +263,7 @@ export default function ProjectDetailPage() {
     if (unitGroups.length) items.push(`${unitGroups.length} configuration${unitGroups.length > 1 ? 's' : ''} available — ${unitGroups.map((g) => g.type).join(', ')}`);
     if (project.possessionDate) {
       items.push(
-        `Possession expected ${new Date(project.possessionDate).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}`
+        `Possession expected ${formatMonthYear(project.possessionDate)}`
       );
     }
     if (project.amenities?.length) items.push(`${project.amenities.length} on-site amenities, including ${project.amenities.slice(0, 3).join(', ')}`);
@@ -311,9 +344,7 @@ export default function ProjectDetailPage() {
   const totalInterest = totalPayment - loanLakhs * 1e5;
 
   const statusLabel = project.constructionStatus?.replace(/_/g, ' ') || (project.rera_id ? 'RERA registered' : 'New launch');
-  const possessionLabel = project.possessionDate
-    ? new Date(project.possessionDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
-    : null;
+  const possessionLabel = project.possessionDate ? formatMonthYear(project.possessionDate, true) : null;
   const locationLabel = project.locality || project.location || project.city || 'Pune';
 
   return (

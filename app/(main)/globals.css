@@ -576,7 +576,7 @@ header {
    .stop .range small { display: block; font-family: var(--font-sans); font-size: 11px; color: var(--text-muted); margin-top: 2px; }
    
    /* Active Inventory Projects */
-   #projects { padding: 120px 0; }
+   #projects { padding: 60px 0; }
    .section-head-flex { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
    
    .type-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }

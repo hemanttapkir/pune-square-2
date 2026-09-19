@@ -37,7 +37,7 @@ export default function NewsCarousel({ items }: { items: RssItem[] }) {
 
   return (
     
-    <section id="news" style={{ padding: "100px 0", borderBottom: "1px solid var(--line-light)" }}>
+    <section id="news" style={{ padding: "60px 0", borderBottom: "1px solid var(--line-light)" }}>
   <div className="wrap">
         {/* Header and Controls */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "40px" }}>

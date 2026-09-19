@@ -53,8 +53,8 @@ export default function Header() {
                 </Link>
               </li>
               <li>
-                <Link href="#guides" onClick={closeMenu}>
-                  Guides
+                <Link href="/about" onClick={closeMenu}>
+                 About us
                 </Link>
               </li>
             </ul>

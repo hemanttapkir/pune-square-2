@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { getProjects, Project, PROPERTY_TYPES, PropertyType } from '@/lib/projects';
 import { parsePriceToLakh } from '@/lib/price';
 import NewsSection from "@/components/NewsSection";
+import CorridorProjectsSection from '@/components/CorridorProjectsSection';
+
 
 const PROJECTS_PER_PAGE = 6;
 
@@ -71,7 +73,7 @@ const DEVELOPERS = [
   { name: 'Panchshil Realty', initials: 'PR', match: 'panchshil', logo: '/developers/panchshil.png', note: 'Ultra-luxury and Grade-A commercial in east Pune' },
   { name: 'VTP Realty', initials: 'VT', match: 'vtp', logo: '/developers/vtp.png', note: 'High-volume townships in Kharadi and Mahalunge' },
   { name: 'Kumar Properties', initials: 'KU', match: 'kumar', logo: '/developers/kumar.png', note: 'One of the oldest Pune names, central belt focus' },
-  { name: 'VJ Developers', initials: 'VJ', match: 'VJ', logo: '/developers/vj.png', note: 'Trusted track record of always delivering modern residential projects on time' },
+  { name: 'VJ Developers', initials: 'VJ', match: 'vj', logo: '/developers/vj.png', note: 'Trusted track record of always delivering modern residential projects on time' },
   { name: 'Lodha Group', initials: 'LG', match: 'lodha', logo: '/developers/lodha.png', note: 'Ultra-luxury residential projects and massive resort-style townships equipped with world-class amenities.' },
 ];
 
@@ -160,7 +162,6 @@ export default function HomePage()
   const [propertyType, setPropertyType] = useState<PropertyTypeFilter>('All types');
   const [searchTab, setSearchTab] = useState<'buy' | 'rent'>('buy');
   const [logoFailed, setLogoFailed] = useState<Record<string, boolean>>({});
-  
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -237,7 +238,10 @@ export default function HomePage()
     e.preventDefault();
     scrollToProjects();
   }
-
+  function handleSelectLocality(locality: string) {
+    setQuery(locality);
+    setCurrentPage(1);
+  }
   return (
     <>
       <section className="hero-v2">
@@ -353,7 +357,7 @@ export default function HomePage()
           </div>
         </div>
       </section>
-
+      <CorridorProjectsSection projects={projects} onSelectLocality={handleSelectLocality} />
       <section id="projects">
         <div className="wrap">
           <div className="section-head section-head-flex">

@@ -39,8 +39,8 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${fraunces.variable} ${workSans.variable} ${spaceGrotesk.variable}`}
-    >
-      <body>
+      suppressHydrationWarning>
+  <body suppressHydrationWarning>
         <AppChrome>{children}</AppChrome>
       </body>
     </html>

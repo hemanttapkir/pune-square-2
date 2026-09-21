@@ -38,17 +38,17 @@ export default function Header() {
           <nav className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
             <ul>
               <li>
-                <Link href="#projects" onClick={closeMenu}>
+                <Link href="/#projects" onClick={closeMenu}>
                   Projects
                 </Link>
               </li>
               <li>
-                <Link href="#developers" onClick={closeMenu}>
+                <Link href="/#developers" onClick={closeMenu}>
                   Developers
                 </Link>
               </li>
               <li>
-                <Link href="#news" onClick={closeMenu}>
+                <Link href="/#news" onClick={closeMenu}>
                   Markets News
                 </Link>
               </li>

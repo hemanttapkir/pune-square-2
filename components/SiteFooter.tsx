@@ -15,8 +15,8 @@ export default function SiteFooter() {
               corridors, current launches, and the paperwork that matters. Not a brokerage.
             </p>
             <div className="foot-contact">
-              <a href="tel:+912012345678">📞 +91 20 1234 5678</a>
-              <a href="mailto:hello@punesquare.in">✉️ hello@puneassets.in</a>
+              <a href="tel:+912012345678">📞 +91 9028129696</a>
+              <a href="mailto:hello@punesquare.in">✉️ hello@puneassets.com</a>
             </div>
           </div>
           <div>
@@ -31,9 +31,10 @@ export default function SiteFooter() {
           <div>
             <h5>Corridors</h5>
             <ul>
-              <li><Link href="/#corridors">Hinjewadi–Wakad–Baner</Link></li>
-              <li><Link href="/#corridors">Kharadi–Magarpatta</Link></li>
-              <li><Link href="/#corridors">Kothrud–NIBM</Link></li>
+              <li><Link href="/#corridor-section">East Pune IT & Business Corridor</Link></li>
+              <li><Link href="/#CorridorProjectsSection">West Pune Prime Belt</Link></li>
+              <li><Link href="/#CorridorProjectsSection">Central Premium Corridor</Link></li>
+              <li><Link href="/#CorridorProjectsSection">PCMC & North Growth Belt</Link></li>
             </ul>
           </div>
           <div>

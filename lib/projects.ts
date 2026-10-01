@@ -76,6 +76,21 @@ function parsePropertyTypes(raw: unknown): string[] {
     .filter(Boolean);
 }
 
+// unit_pricing may arrive as an array (jsonb), a JSON string (text column), or null
+function normalizeUnitPricing(raw: unknown): UnitPricing[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean) as UnitPricing[];
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed.filter(Boolean) as UnitPricing[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 // Maps raw Supabase row into standard Project interface
 function mapProperty(
   property: any,
@@ -83,8 +98,19 @@ function mapProperty(
   reelsData: { url: string; title?: string; thumbnail?: string }[] = []
 ): Project {
   // Try calculating from unit_pricing first
-  const { label: startingPrice, lakh: priceLakh } = getStartingPrice(property.unit_pricing);
-  const calculatedRange = getPriceRange(property.unit_pricing);
+  // Guarded: a bad/empty unit_pricing must never take down the whole listing
+  const unitPricing = normalizeUnitPricing(property.unit_pricing);
+  let startingPrice: string | null | undefined = null;
+  let priceLakh: number | null | undefined = null;
+  let calculatedRange: string | null | undefined = null;
+  try {
+    const starting = getStartingPrice(unitPricing as any) ?? ({} as any);
+    startingPrice = starting.label;
+    priceLakh = starting.lakh;
+    calculatedRange = getPriceRange(unitPricing as any);
+  } catch (e) {
+    console.error('Price calc failed for', property?.title, e);
+  }
 
   // Fallback to min_price / max_price if unit_pricing is empty
   const fallbackPrice = formatMinMaxPrice(property.min_price, property.max_price);
@@ -112,7 +138,7 @@ function mapProperty(
     propertyType: property.property_type,
     propertyTypes: parsePropertyTypes(property.property_type), // NEW
     amenities: property.amenities || [],
-    unit_pricing: property.unit_pricing || [],
+    unit_pricing: unitPricing,
     imagesUrl: finalImages,
     featured_image: property.featured_image,
     status: property.status,
@@ -138,9 +164,19 @@ export async function getProjects(): Promise<Project[]> {
     return [];
   }
 
-  return (data || []).map((property) =>
-    mapProperty(property, property.featured_image ? [property.featured_image] : [])
-  );
+  console.log('[getProjects] rows from Supabase:', data?.length ?? 0);
+
+  const projects: Project[] = [];
+  for (const property of data || []) {
+    try {
+      projects.push(
+        mapProperty(property, property.featured_image ? [property.featured_image] : [])
+      );
+    } catch (e) {
+      console.error('[getProjects] skipped bad row:', property?.id, property?.title, e);
+    }
+  }
+  return projects;
 }
 
 // Fetch single project by slug with gallery images

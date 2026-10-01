@@ -168,9 +168,16 @@ export default function HomePage()
   useEffect(() => {
     async function loadProjects() {
       setLoadingProjects(true);
-      const data = await getProjects();
-      setProjects(data || []);
-      setLoadingProjects(false);
+      try {
+        const data = await getProjects();
+        console.log('[HomePage] projects loaded:', data?.length ?? 0);
+        setProjects(data || []);
+      } catch (e) {
+        console.error('[HomePage] loadProjects failed:', e);
+        setProjects([]);
+      } finally {
+        setLoadingProjects(false);
+      }
     }
     loadProjects();
   }, []);
@@ -197,7 +204,7 @@ export default function HomePage()
            }
       if (corridor !== 'All corridors') {
         const c = CORRIDORS.find((c) => c.title === corridor);
-        if (c && !c.localities.some((loc) => item.location?.toLowerCase().includes(loc))) {
+        if (c && !c.localities.some((loc) => item.location?.toLowerCase().includes(loc.toLowerCase()))) {
           return false;
         }
       }
@@ -205,7 +212,7 @@ export default function HomePage()
         const lakh = item.priceLakh ?? parsePriceToLakh(item.price || '');
         if (lakh !== null && !matchesBudget(lakh, budget)) return false;
       }
-      if (propertyType !== 'All types' && !getPropertyTypeList(item.propertyType).includes(propertyType)) {
+      if (propertyType !== 'All types' && !(item.propertyTypes ?? getPropertyTypeList(item.propertyType as string)).includes(propertyType)) {
       return false;
       }
       return true;

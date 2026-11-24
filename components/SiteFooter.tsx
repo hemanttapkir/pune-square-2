@@ -8,7 +8,7 @@ export default function SiteFooter() {
         <div className="foot-grid">
           <div>
             <div className="logo">
-            Pune <span className="gold-text">Assets</span>
+            Pune <span className="gold-text">RERA</span>
             </div>
             <p className="about">
               An independent, informational guide to Pune&apos;s residential real estate —
@@ -16,7 +16,7 @@ export default function SiteFooter() {
             </p>
             <div className="foot-contact">
               <a href="tel:+912012345678">📞 +91 9028129696</a>
-              <a href="mailto:hello@punesquare.in">✉️ hello@puneassets.com</a>
+              <a href="mailto:hello@punesquare.in">✉️ hello@punerera.in</a>
             </div>
           </div>
           <div>
@@ -47,7 +47,7 @@ export default function SiteFooter() {
           </div>
         </div>
         <div className="foot-bottom">
-          <span>© 2026 Pune Assets. Informational content only — verify project and pricing details directly with the developer.</span>
+          <span>© 2026 Pune Rera. Informational content only — verify project and pricing details directly with the developer.</span>
           <span className="foot-bottom-right">
             <span>Pune, Maharashtra</span>
             <Link href="/admin" className="foot-admin-link">Admin</Link>

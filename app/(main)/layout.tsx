@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Pune Assets — Real Estate Blueprint for Pune',
+  title: 'Pune RERA — Real Estate Blueprint for Pune',
   description:
     "An independent, informational guide to Pune's residential real estate — corridors, current launches, and the paperwork that matters.",
 };

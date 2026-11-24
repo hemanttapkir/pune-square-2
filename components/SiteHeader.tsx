@@ -20,7 +20,7 @@ export default function Header() {
         <div className="nav-inner">
        {/* Logo */}
 <Link href="/" className="logo" onClick={closeMenu}>
-  Pune <span className="gold-text">Assets</span>
+  Pune <span className="gold-text">RERA</span>
 </Link>
 
           {/* Hamburger Toggle Button */}

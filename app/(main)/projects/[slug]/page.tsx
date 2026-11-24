@@ -346,12 +346,7 @@ export default function ProjectDetailPage() {
   const statusLabel = project.constructionStatus?.replace(/_/g, ' ') || (project.rera_id ? 'RERA registered' : 'New launch');
   const possessionLabel = project.possessionDate ? formatMonthYear(project.possessionDate, true) : null;
   const locationLabel = project.locality || project.location || project.city || 'Pune';
-  useEffect(() => {
-    if (!project) return;
-    document.title = project.title
-      ? `${project.title} – ${locationLabel} | Pune RERA`
-      : 'Project Not Found | Pune RERA';
-  }, [project, locationLabel]);
+
   return (
     <div className={`${display.variable} ${body.variable}`} style={{ fontFamily: 'var(--font-body)', color: C.ink, background: C.paper, paddingBottom: 96 }}>
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: '28px 24px 0' }}>
@@ -943,7 +938,6 @@ function ReelsRow({
  *   else is paused, so nothing plays audio/video off-screen.
  * - Tap the video to play/pause, tap the speaker icon to toggle sound.
  */
-
 function ReelsViewer({
   reels,
   startIndex,

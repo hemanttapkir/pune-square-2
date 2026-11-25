@@ -252,64 +252,102 @@ export default function HomePage()
   return (
     <>
       <section className="hero-v2">
-        <div className="hero-bg">
-          <img src="/hero-photo.jpg" alt="Pune skyline" className="skyline-bg" />
-          <div className="hero-overlay" />
-        </div>
-
-        <div className="wrap hero-content">
-          <p className="eyebrow">Pune, Maharashtra</p>
-          <h1 className="hero-title-light"> Unfiltered  <em>Pune</em>  spaces. </h1>
-          <p className="lede-light">Seven growth corridors, hundreds of live launches, and a lot of sales pressure. We map the city by geography and price — not by whoever&apos;s advertising loudest this week.</p>
-
-          <div className="search-card">
-            <div className="search-tabs">
-              <button type="button" className={`search-tab ${searchTab === 'buy' ? 'active' : ''}`} onClick={() => setSearchTab('buy')}>Buy</button>
-              <button type="button" className={`search-tab ${searchTab === 'rent' ? 'active' : ''}`} onClick={() => setSearchTab('rent')}>Rent</button>
-            </div>
-            {searchTab === 'rent' && (
-              <p className="search-note">Rental listings are coming soon — search below still shows current buy inventory.</p>
-            )}
-            <form className="search-fields" onSubmit={handleHeroSearch}>
-              <div className="search-field">
-                {ICONS.pin}
-                <input
-                  type="text"
-                  placeholder="Locality, project or corridor"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  aria-label="Search by project name or locality"
-                />
-              </div>
-              <div className="search-field">
-                {ICONS.building}
-                <select
-                  value={propertyType}
-                  onChange={(e) => setPropertyType(e.target.value as PropertyTypeFilter)}
-                  aria-label="Filter by property type"
-                >
-                  <option value="All types">All types</option>
-                  {(PROPERTY_TYPES || []).map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="search-field">
-                {ICONS.rupee}
-                <select value={budget} onChange={(e) => setBudget(e.target.value)} aria-label="Filter by budget">
-                  {BUDGETS.map((b) => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
-              </div>
-              <button type="submit" className="btn btn-solid search-submit">Search</button>
-            </form>
+        <div className="hero-frame">
+          <div className="hero-bg">
+            <img src="/images/hero.jpeg" alt="Pune skyline" className="skyline-bg" />
+            <div className="hero-overlay" />
           </div>
 
-          <div className="hero-trust">
-            <span><span className="hero-trust-icon">{ICONS.shield}</span>MahaRERA status shown on every project</span>
-            <span><span className="hero-trust-icon">{ICONS.users}</span>No brokerage layer on top of listings</span>
-            <span><span className="hero-trust-icon">{ICONS.clock}</span>Shortlist turnaround in under 24 hrs</span>
+          {/* Header (SiteHeader) floats over this frame via CSS */}
+          <div className="hero-content">
+            <div>
+              <div className="hero-badge">
+                <span>Pune, Maharashtra</span>
+              </div>
+
+              <div className="hero-top">
+                <div>
+                  <h1 className="hero-title-light"> Unfiltered <em>Pune</em> spaces. </h1>
+                  <p className="lede-light">Seven growth corridors, hundreds of live launches, and a lot of sales pressure. We map the city by geography and price — not by whoever&apos;s advertising loudest this week.</p>
+                </div>
+
+                <div className="hero-stats">
+                  <div className="hero-stat">
+                    <strong>7</strong>
+                    <span>Growth corridors</span>
+                  </div>
+                  <div className="hero-stat">
+                    <strong>{loadingProjects ? '…' : projects.length}</strong>
+                    <span>Projects listed</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="search-wrap">
+                <div className="search-card">
+                  <div className="search-tabs">
+                    <button type="button" className={`search-tab ${searchTab === 'buy' ? 'active' : ''}`} onClick={() => setSearchTab('buy')}>Buy</button>
+                    <button type="button" className={`search-tab ${searchTab === 'rent' ? 'active' : ''}`} onClick={() => setSearchTab('rent')}>Rent</button>
+                  </div>
+                  {searchTab === 'rent' && (
+                    <p className="search-note">Rental listings are coming soon — search below still shows current buy inventory.</p>
+                  )}
+                  <form className="search-fields" onSubmit={handleHeroSearch}>
+                    <div className="search-group">
+                      <label htmlFor="hero-location">Location</label>
+                      <div className="search-field">
+                        {ICONS.pin}
+                        <input
+                          id="hero-location"
+                          type="text"
+                          placeholder="Locality, project or corridor"
+                          value={query}
+                          onChange={(e) => setQuery(e.target.value)}
+                          aria-label="Search by project name or locality"
+                        />
+                      </div>
+                    </div>
+                    <div className="search-group">
+                      <label htmlFor="hero-type">Type</label>
+                      <div className="search-field">
+                        {ICONS.building}
+                        <select
+                          id="hero-type"
+                          value={propertyType}
+                          onChange={(e) => setPropertyType(e.target.value as PropertyTypeFilter)}
+                          aria-label="Filter by property type"
+                        >
+                          <option value="All types">All types</option>
+                          {(PROPERTY_TYPES || []).map((t) => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="search-group">
+                      <label htmlFor="hero-budget">Price</label>
+                      <div className="search-field">
+                        {ICONS.rupee}
+                        <select id="hero-budget" value={budget} onChange={(e) => setBudget(e.target.value)} aria-label="Filter by budget">
+                          {BUDGETS.map((b) => (
+                            <option key={b} value={b}>{b}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <button type="submit" className="search-submit">Search Properties</button>
+                  </form>
+                </div>
+              </div>
+
+              <div className="hero-trust">
+                <span><span className="hero-trust-icon">{ICONS.shield}</span>MahaRERA status shown on every project</span>
+                <span><span className="hero-trust-icon">{ICONS.users}</span>No brokerage layer on top of listings</span>
+                <span><span className="hero-trust-icon">{ICONS.clock}</span>Shortlist turnaround in under 24 hrs</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -2,26 +2,26 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
 
-  const toggleMenu = () => {
-    setIsMenuOpen((prev) => !prev);
-  };
+  // Home page: glass pill floating over the hero. Other pages: solid white bar.
+  const isHome = pathname === '/';
 
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
+  const toggleMenu = () => setIsMenuOpen((prev) => !prev);
+  const closeMenu = () => setIsMenuOpen(false);
 
   return (
-    <header>
+    <header className={`site-header ${isHome ? 'site-header--overlay' : ''}`}>
       <div className="wrap">
         <div className="nav-inner">
-       {/* Logo */}
-<Link href="/" className="logo" onClick={closeMenu}>
-  Pune <span className="gold-text">RERA</span>
-</Link>
+          {/* Logo */}
+          <Link href="/" className="logo" onClick={closeMenu}>
+            Pune <span className="gold-text">RERA</span>
+          </Link>
 
           {/* Hamburger Toggle Button */}
           <button
@@ -38,25 +38,22 @@ export default function Header() {
           <nav className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
             <ul>
               <li>
-                <Link href="/#projects" onClick={closeMenu}>
-                  Projects
-                </Link>
+                <Link href="/#projects" onClick={closeMenu}>Projects</Link>
               </li>
               <li>
-                <Link href="/#developers" onClick={closeMenu}>
-                  Developers
-                </Link>
+                <Link href="/#developers" onClick={closeMenu}>Developers</Link>
               </li>
               <li>
-                <Link href="/#news" onClick={closeMenu}>
-                  Markets News
-                </Link>
+                <Link href="/#news" onClick={closeMenu}>Markets News</Link>
               </li>
               <li>
-                <Link href="/about" onClick={closeMenu}>
-                 About us
-                </Link>
+                <Link href="/about" onClick={closeMenu}>About us</Link>
               </li>
+              {/* Optional pill button on the far right (like "Register" in the reference):
+              <li className="push">
+                <Link href="/#contact" className="nav-cta" onClick={closeMenu}>Get in touch</Link>
+              </li>
+              */}
             </ul>
           </nav>
         </div>
